@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "quinzaine-3fb2e"
+  },
+  "targets": {
+    "quinzaine-3fb2e": {
+      "hosting": {
+        "admin": [
+          "quinzaine-3fb2e"
+        ],
+        "public": [
+          "public-15n"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

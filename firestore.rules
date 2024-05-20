@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow write, read access to the entire database if user is logged in
+    match /{document=**} {
+      allow write, read: if request.auth.uid == "wT2dedkJJKbd1A5g68eB5Yux2202" || request.auth.uid == "xP6Jbh6ZBdZRS0hbFDTuVUqyCih2";
+    }
+
+    // Allow read access to the "public" collection for all users
+    match /public/{beersId} {
+      allow read: if true;
+    }
+    
+    // Require authentication for documents in subcollections within "test"
+    match /articles/wEI59eWhKxuQKZXfAL6Y/infos/90 {
+      allow read: if true;
+    }
+  }
+}
+
