@@ -1,0 +1,7 @@
+clean navbar css
+check for lazy imports
+Add a readme
+Password protected pages
+update dataprovider
+update authprovider
+start adding pages and elements
