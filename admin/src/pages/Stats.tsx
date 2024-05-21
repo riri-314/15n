@@ -1,15 +1,15 @@
 import Container from "@mui/material/Container";
-import {useData} from "../providers/DataProvider";
+import { useData } from "../providers/DataProvider";
 import Loading from "../sections/loading/Loading";
 
 // --------------------------------------
-export default function AccountPage() {
-    const {data} = useData();
+export default function StatsPage() {
+  const { data } = useData();
 
-    //load doc from firebase then display account
-    return (<>
-            <Container maxWidth="xl">
-                {data ? <>Youhou</> : <Loading/>}
-            </Container>
-        </>);
+  //load doc from firebase then display account
+  return (
+    <>
+      <Container maxWidth="xl">{data ? <>Youhou</> : <Loading />}</Container>
+    </>
+  );
 }

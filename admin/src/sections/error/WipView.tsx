@@ -18,7 +18,6 @@ export default function WipView() {
                         maxWidth: 480,
                         mx: 'auto',
                         display: 'flex',
-                        minHeight: '100vh',
                         textAlign: 'center',
                         alignItems: 'center',
                         flexDirection: 'column',
@@ -34,8 +33,8 @@ export default function WipView() {
 
                     </Typography>
 
-                    <Button href="/account" size="large" variant="contained" component={RouterLink}>
-                        Retourner à mon compte
+                    <Button href="/" size="large" variant="contained" component={RouterLink}>
+                        Retourner au scanner
                     </Button>
                 </Box>
             </Container>

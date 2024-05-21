@@ -14,7 +14,6 @@ export default function Loading() {
             maxWidth: 480,
             mx: 'auto',
             display: 'flex',
-            minHeight: '100vh',
             textAlign: 'center',
             alignItems: 'center',
             flexDirection: 'column',

@@ -1,18 +1,9 @@
-import {
-  UpcScan,
-  BarChartFill,
-  JournalText,
-  Box2,
-  Gear,
-  List,
-  X,
-  BoxArrowLeft,
-} from "react-bootstrap-icons";
-import MyIcon from "../../assets/15n.svg";
+import MyIcon from "../../assets/15n_white.svg";
 import "./NavBar.css";
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { getAuth, signOut } from "firebase/auth";
+import Iconify from "../../components/iconify/iconify";
 
 interface NavBarProps {
   children: React.ReactNode;
@@ -46,96 +37,100 @@ function NavBar({ children }: NavBarProps) {
 
   return (
     <>
-        <div>
-          <header
-            className={isNavVisible ? "header body-pd" : "header"}
-            id="header"
-          >
-            <div className="header_toggle">
-              {isNavVisible ? (
-                <X onClick={handleToggle} />
-              ) : (
-                <List onClick={handleToggle} />
-              )}
-            </div>
-            <h1 style={{ fontWeight: "bolder" }}>{version}</h1>
-          </header>
-          <div
-            className={isNavVisible ? "l-navbar show" : "l-navbar"}
-            id="nav-bar"
-          >
-            <nav className="nav">
-              <div>
-                <Link to="/" className="nav_logo">
-                  <img src={MyIcon} id="custom-icon" />
-                  <span className="nav_logo-name">Quinzaine</span>
-                </Link>
-                <div className="nav_list">
-                  <NavLink
-                    to="/stats"
-                    className={({ isActive }) => {
-                      return isActive ? "nav_link active" : "nav_link";
-                    }}
-                  >
-                    <BarChartFill />
-                    <span className="nav_name">Stats</span>
-                  </NavLink>
-                  <NavLink
-                    to="/"
-                    className={({ isActive }) => {
-                      return isActive ? "nav_link active" : "nav_link";
-                    }}
-                  >
-                    <UpcScan />
-                    <span className="nav_name">Scanner</span>
-                  </NavLink>
-                  <NavLink
-                    to="carte"
-                    className={({ isActive }) => {
-                      return isActive ? "nav_link active" : "nav_link";
-                    }}
-                  >
-                    <JournalText />
-                    <span className="nav_name">Carte</span>
-                  </NavLink>
-                  <NavLink
-                    to="/stock"
-                    className={({ isActive }) => {
-                      return isActive ? "nav_link active" : "nav_link";
-                    }}
-                  >
-                    <Box2 />
-                    <span className="nav_name">Stock</span>
-                  </NavLink>
-                  <NavLink
-                    to="/gestion"
-                    className={({ isActive }) => {
-                      return isActive ? "nav_link active" : "nav_link";
-                    }}
-                  >
-                    <Gear />
-                    <span className="nav_name">Gestion</span>
-                  </NavLink>
-                </div>
+      <div>
+        <header
+          className={isNavVisible ? "header body-pd" : "header"}
+          id="header"
+        >
+          <div className="header_toggle">
+            {isNavVisible ? (
+              <div onClick={handleToggle}>
+                <Iconify icon="material-symbols:menu-open-rounded" />
               </div>
-
-              <NavLink
-                to="#"
-                className={({ isActive }) => {
-                  return isActive ? "nav_link active" : "nav_link";
-                }}
-                onClick={logOut}
-              >
-                <BoxArrowLeft />
-                <span className="nav_name">SignOut</span>
-              </NavLink>
-            </nav>
+            ) : (
+              <div onClick={handleToggle}>
+                <Iconify icon="material-symbols:menu-rounded" />
+              </div>
+            )}
           </div>
-          <div className="container-fluid"></div>
+          <h1 style={{ fontWeight: "bolder" }}>{version}</h1>
+        </header>
+        <div
+          className={isNavVisible ? "l-navbar show" : "l-navbar"}
+          id="nav-bar"
+        >
+          <nav className="nav">
+            <div>
+              <Link to="/" className="nav_logo">
+                <img src={MyIcon} id="custom-icon" />
+                <span className="nav_logo-name">Quinzaine</span>
+              </Link>
+              <div className="nav_list">
+                <NavLink
+                  to="/stats"
+                  className={({ isActive }) => {
+                    return isActive ? "nav_link active" : "nav_link";
+                  }}
+                >
+                  <Iconify icon="material-symbols:bar-chart-rounded" />
+                  <span className="nav_name">Stats</span>
+                </NavLink>
+                <NavLink
+                  to="/"
+                  className={({ isActive }) => {
+                    return isActive ? "nav_link active" : "nav_link";
+                  }}
+                >
+                  <Iconify icon="material-symbols:barcode-reader-outline-rounded" />
+                  <span className="nav_name">Scanner</span>
+                </NavLink>
+                <NavLink
+                  to="/carte"
+                  className={({ isActive }) => {
+                    return isActive ? "nav_link active" : "nav_link";
+                  }}
+                >
+                  <Iconify icon="material-symbols:article-outline-rounded" />
+                  <span className="nav_name">Carte</span>
+                </NavLink>
+                <NavLink
+                  to="/stock"
+                  className={({ isActive }) => {
+                    return isActive ? "nav_link active" : "nav_link";
+                  }}
+                >
+                  <Iconify icon="material-symbols:deployed-code-outline" />
+                  <span className="nav_name">Stock</span>
+                </NavLink>
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) => {
+                    return isActive ? "nav_link active" : "nav_link";
+                  }}
+                >
+                  <Iconify icon="material-symbols:admin-panel-settings-outline-rounded" />
+                  <span className="nav_name">Gestion</span>
+                </NavLink>
+              </div>
+            </div>
+
+            <NavLink
+              to="#"
+              className={({ isActive }) => {
+                return isActive ? "nav_link active" : "nav_link";
+              }}
+              onClick={logOut}
+            >
+              <Iconify icon="material-symbols:exit-to-app-rounded" />
+              <span className="nav_name">SignOut</span>
+            </NavLink>
+          </nav>
         </div>
-        <div className="content" id="main-content">
-          {children}
-        </div>
+        <div className="container-fluid"></div>
+      </div>
+      <div className="content" id="main-content">
+        {children}
+      </div>
     </>
   );
 }
