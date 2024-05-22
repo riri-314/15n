@@ -1,5 +1,7 @@
-update authprovider, ok
-Login page, ok
-Password protected admin pages
-update dataprovider
+fetch public data on load, ok
+fetch private data on demande, ok
+Refetch everybody, ok
+update dataprovider, ok
+fetch privateData if necessary on protected page load, ok
+reorganise folders
 start adding pages and elements
