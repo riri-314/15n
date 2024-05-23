@@ -3,7 +3,8 @@ import "./NavBar.css";
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { getAuth, signOut } from "firebase/auth";
-import Iconify from "../../components/iconify/iconify";
+import Iconify from "../../components/iconify/Iconify";
+import { useData } from "../../providers/DataProvider";
 
 interface NavBarProps {
   children: React.ReactNode;
@@ -11,8 +12,13 @@ interface NavBarProps {
 
 function NavBar({ children }: NavBarProps) {
   const [isNavVisible, setIsNavVisible] = useState(false);
+  const [version, setVersion] = useState("");
   const auth = getAuth();
-  const version = 34;
+  const { publicData } = useData();
+
+  useEffect(() => {
+    setVersion(publicData?.get("edition") || "");
+  }, [publicData]);
 
   async function logOut() {
     try {
@@ -42,13 +48,13 @@ function NavBar({ children }: NavBarProps) {
           className={isNavVisible ? "header body-pd" : "header"}
           id="header"
         >
-          <div className="header_toggle">
+          <div>
             {isNavVisible ? (
-              <div onClick={handleToggle}>
+              <div onClick={handleToggle} id="header_toggle">
                 <Iconify icon="material-symbols:menu-open-rounded" />
               </div>
             ) : (
-              <div onClick={handleToggle}>
+              <div onClick={handleToggle} id="header_toggle_small">
                 <Iconify icon="material-symbols:menu-rounded" />
               </div>
             )}
@@ -61,7 +67,7 @@ function NavBar({ children }: NavBarProps) {
         >
           <nav className="nav">
             <div>
-              <Link to="/" className="nav_logo">
+              <Link to="/" className="nav_logo" onClick={() => {setIsNavVisible(false);}}>
                 <img src={MyIcon} id="custom-icon" />
                 <span className="nav_logo-name">Quinzaine</span>
               </Link>
@@ -71,6 +77,7 @@ function NavBar({ children }: NavBarProps) {
                   className={({ isActive }) => {
                     return isActive ? "nav_link active" : "nav_link";
                   }}
+                  onClick={() => {setIsNavVisible(false);}}
                 >
                   <Iconify icon="material-symbols:bar-chart-rounded" />
                   <span className="nav_name">Stats</span>
@@ -80,6 +87,7 @@ function NavBar({ children }: NavBarProps) {
                   className={({ isActive }) => {
                     return isActive ? "nav_link active" : "nav_link";
                   }}
+                  onClick={() => {setIsNavVisible(false);}}
                 >
                   <Iconify icon="material-symbols:barcode-reader-outline-rounded" />
                   <span className="nav_name">Scanner</span>
@@ -89,6 +97,7 @@ function NavBar({ children }: NavBarProps) {
                   className={({ isActive }) => {
                     return isActive ? "nav_link active" : "nav_link";
                   }}
+                  onClick={() => {setIsNavVisible(false);}}
                 >
                   <Iconify icon="material-symbols:article-outline-rounded" />
                   <span className="nav_name">Carte</span>
@@ -98,6 +107,7 @@ function NavBar({ children }: NavBarProps) {
                   className={({ isActive }) => {
                     return isActive ? "nav_link active" : "nav_link";
                   }}
+                  onClick={() => {setIsNavVisible(false);}}
                 >
                   <Iconify icon="material-symbols:deployed-code-outline" />
                   <span className="nav_name">Stock</span>
@@ -107,6 +117,7 @@ function NavBar({ children }: NavBarProps) {
                   className={({ isActive }) => {
                     return isActive ? "nav_link active" : "nav_link";
                   }}
+                  onClick={() => {setIsNavVisible(false);}}
                 >
                   <Iconify icon="material-symbols:admin-panel-settings-outline-rounded" />
                   <span className="nav_name">Gestion</span>
@@ -128,7 +139,7 @@ function NavBar({ children }: NavBarProps) {
         </div>
         <div className="container-fluid"></div>
       </div>
-      <div className="content" id="main-content">
+      <div className={`main-content ${isNavVisible ? 'blur' : ''}`} id="main-content">
         {children}
       </div>
     </>

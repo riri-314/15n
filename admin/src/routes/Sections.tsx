@@ -5,6 +5,7 @@ import LoginPage from "../pages/Login.tsx";
 import NavBar from "../sections/navbar/NavBar.tsx";
 import LoadingPage from "../pages/Loading.tsx";
 
+export const AdminPage = lazy(() => import("../pages/Admin.tsx"));
 export const AdminLoginPage = lazy(() => import("../pages/AdminLogin.tsx"));
 export const NotFoundPage = lazy(() => import("../pages/NotFound.tsx"));
 export const WipPage = lazy(() => import("../pages/WorkInProgress.tsx"));
@@ -52,7 +53,7 @@ export default function Router() {
           path: "admin",
           element: (
             <AdminLoginPage key="admin">
-              <StatsPage />
+              <AdminPage />
             </AdminLoginPage>
           ),
         },

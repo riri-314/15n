@@ -106,12 +106,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
               // append the private data to the aticles map of the fetchedData
               fetchedData.get("articles").set(docId, docData);
             }
+            // put the 15n data in a new map
+            fetchedData.set("15n", new Map());
             for (const doc of docs15n.docs) {
               const docId = doc.id;
               const docData = doc.data();
               //console.log("Private data fetched:", docId, docData);
               // append the private data to the aticles map of the fetchedData
-              fetchedData.set(docId, docData);
+              //fetchedData.set(docId, docData);
+              fetchedData.get("15n").set(docId, docData);
             }
             console.log("Private data:", fetchedData);
             // set Private data to the fetchedData

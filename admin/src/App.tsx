@@ -1,4 +1,3 @@
-import "./App.css";
 import Loading from "./pages/Loading";
 import { AuthProvider, useAuth } from "./providers/AuthProvider";
 import { DataProvider } from "./providers/DataProvider";

@@ -1,7 +1,6 @@
-fetch public data on load, ok
-fetch private data on demande, ok
-Refetch everybody, ok
-update dataprovider, ok
-fetch privateData if necessary on protected page load, ok
-reorganise folders
-start adding pages and elements
+make the reload data header, ok
+fixed slow NavBar perfs, ok
+make the Quinzaine table, sort of okay
+make the edit quinzaine data modal, 
+make the new quinzaine form and logic, 
+make the admin page,

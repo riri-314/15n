@@ -13,7 +13,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Alert from "@mui/material/Alert";
 
 import { auth } from "../../firebase_config";
-import Iconify from "../../components/iconify/iconify";
+import Iconify from "../../components/iconify/Iconify";
 import { useRouter } from "../../routes/UseRouter";
 import { useAuth } from "../../providers/AuthProvider";
 
@@ -52,7 +52,13 @@ const Login: React.FC = () => {
   const renderLoginForm = (
     <>
       <Stack spacing={3}>
-        <div className="d-flex justify-content-center">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           <img src={loginImage} alt="Login" style={{ width: "25%" }} />
         </div>
         <TextField
