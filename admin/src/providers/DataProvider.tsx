@@ -14,7 +14,7 @@ interface DataContextValue {
   privateData: Map<string, any> | null;
   quinzaineData: Map<string, any> | null;
   refetchPublicData: () => void;
-  refetchPrivateData: () => void;
+  refetchPrivateData: () => Promise<Map<string, any>>;
   refetchQuinzaineData: () => void;
   loadingPrivate: boolean;
   loadingPublic: boolean;
@@ -32,12 +32,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [loadingPrivate, setLoadingPrivate] = useState<boolean>(false);
   const [loadingPublic, setLoadingPublic] = useState<boolean>(false);
   const [loadingQuinzaine, setLoadingQuinzaine] = useState<boolean>(false);
-  const [fetchedTimePrivatePublic, setFetchedTimePrivatePublic] = useState<number>(0);
+  const [fetchedTimePrivatePublic, setFetchedTimePrivatePublic] =
+    useState<number>(0);
   const [fetchedTimeQuinzaine, setFetchedTimeQuinzaine] = useState<number>(0);
 
   const fetchPublicData = async (): Promise<Map<string, any>> => {
     setLoadingPublic(true);
-    let articlesMap = new Map();
+    var articlesMap = new Map();
     try {
       const publicRef = collection(db, "publicTest");
       const queryDocs = query(
@@ -90,11 +91,16 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
   };
 
-  const fetchPrivateData = async () => {
+  const fetchPrivateData = async (): Promise<Map<string, any>> => {
+    let dataMap = new Map();
+
     setLoadingPrivate(true);
+    //await new Promise((resolve) => setTimeout(resolve, 6000));
+
     try {
       // Call fetchPublicData
-      const fetchedData = await fetchPublicData();
+      //const fetchedData = await fetchPublicData();
+      const fetchedData = new Map(await fetchPublicData());
 
       // Access the id field from the articlesMap
       if (fetchedData.size > 0) {
@@ -113,57 +119,67 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           const docs = await getDocs(privateArticlesRef);
           const docs15n = await getDocs(private15nRef);
           if (!docs.empty && !docs15n.empty) {
+            const articles = new Map(fetchedData.get("articles")); // deep copies the articles map
+
             for (const doc of docs.docs) {
               const docId = doc.id;
               const docData = doc.data();
-              //console.log("Private data fetched:", docId, docData);
-              // append the private data to the aticles map of the fetchedData
-              fetchedData.get("articles").set(docId, docData);
+              let articleObject = fetchedData.get("articles").get(docId); // object
+              articleObject = { ...articleObject, ...docData }; // new object
+              articles.set(docId, articleObject);
             }
+            fetchedData.set("articles", articles); // add new article map to the fetchedData
             // put the 15n data in a new map
             fetchedData.set("15n", new Map());
             for (const doc of docs15n.docs) {
               const docId = doc.id;
               const docData = doc.data();
-              //console.log("Private data fetched:", docId, docData);
-              // append the private data to the aticles map of the fetchedData
-              //fetchedData.set(docId, docData);
               fetchedData.get("15n").set(docId, docData);
             }
             console.log("Private data:", fetchedData);
             // set Private data to the fetchedData
             setPrivateData(fetchedData);
             setLoadingPrivate(false);
+            return fetchedData;
           } else {
             console.log("No private data fetched");
             setLoadingPrivate(false);
+            return dataMap;
           }
         } catch (error) {
           console.error("Error fetching private data:", error);
           setLoadingPrivate(false);
+          return dataMap;
         }
       } else {
         console.log("No public data fetched in fetchPrivateData");
         setLoadingPrivate(false);
+        return dataMap;
       }
     } catch (error) {
       console.error("Error fetching data:", error);
       setLoadingPrivate(false);
+      return dataMap;
     }
   };
 
   const fetchQuinzaineData = async () => {
     setLoadingQuinzaine(true);
+    //await new Promise((resolve) => setTimeout(resolve, 6000));
     const private15nRef = collection(db, "private");
     let quinzaineMap = new Map();
+    quinzaineMap.set("15n", new Map());
     try {
+      const fetchedData = await fetchPublicData();
+      const edition = fetchedData.get("edition");
       const docs15n = await getDocs(private15nRef);
       if (!docs15n.empty) {
         for (const doc of docs15n.docs) {
           const docId = doc.id;
           const docData = doc.data();
-          quinzaineMap.set(docId, docData);
+          quinzaineMap.get("15n").set(docId, docData);
         }
+        quinzaineMap.set("edition", edition);
         console.log("Quinzaine data:", quinzaineMap);
         setQuinzaineData(quinzaineMap);
         setFetchedTimeQuinzaine(Date.now());
@@ -187,13 +203,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     fetchPublicData(); // Function to refetch data
   };
 
-  const refetchPrivateData = () => {
-    fetchPrivateData(); // Function to refetch data
+  const refetchPrivateData = async (): Promise<Map<string, any>> => {
+    return fetchPrivateData(); // Function to refetch data
   };
 
   const refetchQuinzaineData = () => {
     fetchQuinzaineData(); // Function to refetch data
-  }
+  };
 
   return (
     <DataContext.Provider
@@ -208,7 +224,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         loadingPublic,
         loadingQuinzaine,
         fetchedTimePrivatePublic,
-        fetchedTimeQuinzaine
+        fetchedTimeQuinzaine,
       }}
     >
       {children}

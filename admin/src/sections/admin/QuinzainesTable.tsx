@@ -1,13 +1,25 @@
-import { Button, alpha, styled } from "@mui/material";
+import { alpha, styled } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
   GridToolbar,
   GridCellParams,
   gridClasses,
+  GridRowParams,
+  GridActionsCellItem,
 } from "@mui/x-data-grid";
 import { useData } from "../../providers/DataProvider";
 import Iconify from "../../components/iconify/Iconify";
+import { LoadingButton } from "@mui/lab";
+import { useState } from "react";
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  runTransaction,
+} from "firebase/firestore";
+import { db } from "../../firebase_config";
 
 const formatDate = (date: any) => {
   const options: Intl.DateTimeFormatOptions = {
@@ -21,13 +33,13 @@ const formatDate = (date: any) => {
 };
 
 const buttonStyle = {
-    borderColor: "transparent",
-    borderRadius: "15px",
-    padding: "5px 10px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    width: "100%",
-    color: "white", // Add this line to set the font color to white
+  borderColor: "transparent",
+  borderRadius: "15px",
+  padding: "5px 10px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  width: "100%",
+  color: "white", // Add this line to set the font color to white
 };
 
 const ODD_OPACITY = 0.2;
@@ -64,8 +76,67 @@ const StripedDataGrid = styled(DataGrid)(({ theme }) => ({
   },
 }));
 
-export default function QuinzainesTable() {
-  const { privateData } = useData();
+interface QuinzaineTableProps {
+  // Props type definition
+  handleOpenModal: (data: any) => void;
+}
+
+export default function QuinzainesTable({
+  handleOpenModal,
+}: QuinzaineTableProps) {
+  const { quinzaineData, refetchQuinzaineData } = useData();
+  const [loading, setLoading] = useState(false);
+
+  async function changeActiveQuinzaine(id: number) {
+    setLoading(true);
+
+    try {
+      // Reference to your collection
+      const collectionRef = collection(db, "publicTest");
+
+      // Create a query to get all documents in the collection
+      const q = query(collectionRef);
+
+      // Get all documents matching the query
+      const querySnapshot = await getDocs(q);
+
+      // Run a transaction to ensure atomicity
+      await runTransaction(db, async (transaction) => {
+        querySnapshot.forEach((document) => {
+          const docData = document.data();
+          const docRef = doc(db, "publicTest", document.id);
+
+          // Check the condition based on another field's value
+          console.log(
+            "docData.edition",
+            docData.edition,
+            docData.edition === id,
+            id
+          );
+          console.log("typeof docData.edition", typeof docData.edition);
+          if (docData.edition === Number(id)) {
+            // Update the field
+            transaction.update(docRef, {
+              active: true,
+            });
+          } else {
+            // Update the field
+            transaction.update(docRef, {
+              active: false,
+            });
+          }
+        });
+      });
+
+      console.log("Documents updated successfully!");
+      refetchQuinzaineData();
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+
+      console.error("Error updating documents: ", error);
+    }
+  }
 
   const columns: GridColDef[] = [
     {
@@ -75,16 +146,21 @@ export default function QuinzainesTable() {
       editable: false,
       minWidth: 100,
       renderCell: (params: GridCellParams) => (
-        <Button
+        <LoadingButton
           style={{
             ...buttonStyle,
-            backgroundColor: params.row.id == privateData?.get("edition") ? "green" : "red",
+            backgroundColor: loading
+              ? undefined
+              : params.row.id == quinzaineData?.get("edition")
+              ? "green"
+              : "red",
           }}
-          onClick={() => console.log(params.row.id)}
+          onClick={() => changeActiveQuinzaine(params.row.id as number)}
+          loading={loading}
         >
           {params.row.id}
-          {params.row.id == privateData?.get("edition") ? " active" : ""}
-        </Button>
+          {params.row.id == quinzaineData?.get("edition") ? " active" : ""}
+        </LoadingButton>
       ),
     },
     {
@@ -116,21 +192,23 @@ export default function QuinzainesTable() {
       },
     },
     {
-      field: "button",
-      headerName: "Edit data",
-      width: 100,
-      sortable: false,
-      renderCell: (params: GridCellParams) => (
-        <Button
-          style={{
-            ...buttonStyle,
-          }}
-          variant="contained"
-          onClick={() => console.log(params.row.id)}
-        >
-          <Iconify icon="material-symbols:edit-note-outline-rounded" />
-        </Button>
-      ),
+      field: "actions",
+      type: "actions",
+      headerName: "Éditer",
+      minWidth: 100,
+      cellClassName: "actions",
+      getActions: (params: GridRowParams) => {
+        const rowData = params.row;
+        return [
+          <GridActionsCellItem
+            icon={<Iconify icon="ic:outline-edit" />}
+            label="Edit"
+            className="textPrimary"
+            onClick={() => handleOpenModal(rowData)}
+            color="inherit"
+          />,
+        ];
+      },
     },
   ];
   return (
@@ -138,7 +216,7 @@ export default function QuinzainesTable() {
       <StripedDataGrid
         style={{ height: "500px", width: "100%" }}
         disableRowSelectionOnClick
-        rows={Array.from(privateData?.get("15n"), ([id, value]) => ({
+        rows={Array.from(quinzaineData?.get("15n"), ([id, value]) => ({
           id,
           ...value,
         }))}

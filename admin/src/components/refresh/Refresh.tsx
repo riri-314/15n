@@ -5,9 +5,49 @@ import Iconify from "../iconify/Iconify";
 import { useData } from "../../providers/DataProvider";
 import { useEffect, useState } from "react";
 
-export default function Refresh() {
-  const { privateData, fetchedTime, loading, refetchPrivateData } = useData();
+interface RefreshProps {
+  mode: string;
+}
+
+export default function Refresh({ mode }: RefreshProps) {
+  const {
+    publicData,
+    privateData,
+    quinzaineData,
+    refetchPublicData,
+    refetchPrivateData,
+    refetchQuinzaineData,
+    loadingPrivate,
+    loadingPublic,
+    loadingQuinzaine,
+    fetchedTimePrivatePublic,
+    fetchedTimeQuinzaine,
+  } = useData();
   const [refreshTime, setRefreshTime] = useState("");
+
+  let data: Map<string, any> | null;
+  let fetchedTime: number;
+  let loading: boolean;
+  let refetchData: () => void;
+
+  if (mode === "public") {
+    data = publicData;
+    fetchedTime = fetchedTimePrivatePublic;
+    loading = loadingPublic;
+    refetchData = refetchPublicData;
+  } else if (mode === "private") {
+    data = privateData;
+    fetchedTime = fetchedTimePrivatePublic;
+    loading = loadingPrivate;
+    refetchData = refetchPrivateData;
+  } else if (mode === "quinzaine") {
+    data = quinzaineData;
+    fetchedTime = fetchedTimeQuinzaine;
+    loading = loadingQuinzaine;
+    refetchData = refetchQuinzaineData;
+  } else {
+    throw new Error("Invalid mode");
+  }
 
   function formatTime(time: number): string {
     const hours = Math.floor(time / (1000 * 60 * 60));
@@ -35,8 +75,8 @@ export default function Refresh() {
   }, [fetchedTime]);
 
   return (
-    <Container>
-      {privateData && fetchedTime && !loading ? (
+    <Container sx={{pb: 3}}>
+      {data && fetchedTime && !loading ? (
         <>
           <Box
             sx={{
@@ -46,7 +86,7 @@ export default function Refresh() {
               fontStyle: "oblique",
               m: -1,
             }}
-            onClick={refetchPrivateData}
+            onClick={refetchData}
           >
             <Typography variant="body1" sx={{ marginLeft: "5px" }}>
               Updated {refreshTime} ago.
