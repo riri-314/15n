@@ -1,12 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { db } from "../firebase_config";
-import {
-  collection,
-  getDocs,
-  orderBy,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
 
 interface DataProviderProps {
   children: React.ReactNode;
@@ -18,19 +12,31 @@ export const DataContext = React.createContext<DataContextValue | null>(null);
 interface DataContextValue {
   publicData: Map<string, any> | null;
   privateData: Map<string, any> | null;
+  quinzaineData: Map<string, any> | null;
   refetchPublicData: () => void;
   refetchPrivateData: () => void;
-  loading: boolean;
-  fetchedTime: number;
+  refetchQuinzaineData: () => void;
+  loadingPrivate: boolean;
+  loadingPublic: boolean;
+  loadingQuinzaine: boolean;
+  fetchedTimePrivatePublic: number;
+  fetchedTimeQuinzaine: number;
 }
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [publicData, setData] = useState<Map<string, any> | null>(null);
   const [privateData, setPrivateData] = useState<Map<string, any> | null>(null);
-  const [fetchedTime, setFetchedTime] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [quinzaineData, setQuinzaineData] = useState<Map<string, any> | null>(
+    null
+  );
+  const [loadingPrivate, setLoadingPrivate] = useState<boolean>(false);
+  const [loadingPublic, setLoadingPublic] = useState<boolean>(false);
+  const [loadingQuinzaine, setLoadingQuinzaine] = useState<boolean>(false);
+  const [fetchedTimePrivatePublic, setFetchedTimePrivatePublic] = useState<number>(0);
+  const [fetchedTimeQuinzaine, setFetchedTimeQuinzaine] = useState<number>(0);
 
   const fetchPublicData = async (): Promise<Map<string, any>> => {
+    setLoadingPublic(true);
     let articlesMap = new Map();
     try {
       const publicRef = collection(db, "publicTest");
@@ -68,21 +74,24 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           }
         });
         console.log("public data", articlesMap);
-        setFetchedTime(Date.now());
+        setFetchedTimePrivatePublic(Date.now());
         setData(articlesMap);
+        setLoadingPublic(false);
         return articlesMap;
       } else {
         console.log("No active documents found in public data");
+        setLoadingPublic(false);
         return articlesMap;
       }
     } catch (error) {
+      setLoadingPublic(false);
       console.error("Error fetching data in public data:", error);
       return articlesMap;
     }
   };
 
   const fetchPrivateData = async () => {
-    setLoading(true);
+    setLoadingPrivate(true);
     try {
       // Call fetchPublicData
       const fetchedData = await fetchPublicData();
@@ -91,7 +100,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       if (fetchedData.size > 0) {
         const edition = fetchedData.get("edition");
         console.log("Edition:", edition);
-        const privateArticlesRef = collection(db, "private", String(edition), "articles");
+        const privateArticlesRef = collection(
+          db,
+          "private",
+          String(edition),
+          "articles"
+        );
         const private15nRef = collection(db, "private");
 
         // get the docs set to active
@@ -119,23 +133,48 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             console.log("Private data:", fetchedData);
             // set Private data to the fetchedData
             setPrivateData(fetchedData);
-            setLoading(false);
+            setLoadingPrivate(false);
           } else {
             console.log("No private data fetched");
-            setLoading(false);
+            setLoadingPrivate(false);
           }
         } catch (error) {
           console.error("Error fetching private data:", error);
-          setLoading(false);
+          setLoadingPrivate(false);
         }
       } else {
         console.log("No public data fetched in fetchPrivateData");
-        setLoading(false);
+        setLoadingPrivate(false);
       }
-
     } catch (error) {
       console.error("Error fetching data:", error);
-      setLoading(false);
+      setLoadingPrivate(false);
+    }
+  };
+
+  const fetchQuinzaineData = async () => {
+    setLoadingQuinzaine(true);
+    const private15nRef = collection(db, "private");
+    let quinzaineMap = new Map();
+    try {
+      const docs15n = await getDocs(private15nRef);
+      if (!docs15n.empty) {
+        for (const doc of docs15n.docs) {
+          const docId = doc.id;
+          const docData = doc.data();
+          quinzaineMap.set(docId, docData);
+        }
+        console.log("Quinzaine data:", quinzaineMap);
+        setQuinzaineData(quinzaineMap);
+        setFetchedTimeQuinzaine(Date.now());
+        setLoadingQuinzaine(false);
+      } else {
+        console.log("No quinzaine data fetched");
+        setLoadingQuinzaine(false);
+      }
+    } catch (error) {
+      console.error("Error fetching quinziane data:", error);
+      setLoadingQuinzaine(false);
     }
   };
 
@@ -150,10 +189,28 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const refetchPrivateData = () => {
     fetchPrivateData(); // Function to refetch data
+  };
+
+  const refetchQuinzaineData = () => {
+    fetchQuinzaineData(); // Function to refetch data
   }
 
   return (
-    <DataContext.Provider value={{ publicData, privateData, refetchPublicData, refetchPrivateData, loading, fetchedTime }}>
+    <DataContext.Provider
+      value={{
+        publicData,
+        privateData,
+        quinzaineData,
+        refetchPublicData,
+        refetchPrivateData,
+        refetchQuinzaineData,
+        loadingPrivate,
+        loadingPublic,
+        loadingQuinzaine,
+        fetchedTimePrivatePublic,
+        fetchedTimeQuinzaine
+      }}
+    >
       {children}
     </DataContext.Provider>
   );

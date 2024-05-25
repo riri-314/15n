@@ -5,19 +5,19 @@ import AdminView from "../sections/admin/AdminView";
 
 // --------------------------------------
 export default function AdminPage() {
-  const { privateData, loading, refetchPrivateData } = useData();
+  const { quinzaineData, loadingQuinzaine, refetchQuinzaineData } = useData();
 
   //load doc from firebase then display account
   useEffect(() => {
     //console.log("StatsPage useEffect: ", privateData, loading);
-    if (!privateData && !loading) {
-      refetchPrivateData();
+    if (!quinzaineData && !loadingQuinzaine) {
+      refetchQuinzaineData();
     }
   }, []);
 
   return (
     <div style={{width:"100%"}}>
-        {privateData ? <AdminView /> : <Loading />}
+        {quinzaineData ? <AdminView /> : <Loading />}
     </div>
   );
 }
