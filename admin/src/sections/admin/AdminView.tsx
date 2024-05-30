@@ -29,7 +29,7 @@ export default function AdminView() {
   const [modal15nData, setModal15nData] = useState<any | null>(null);
   return (
     <>
-      <Refresh mode="quinzaine" />
+      <Refresh mode="private" />
       <Stack spacing={3}>
         {tableText}
         <div>

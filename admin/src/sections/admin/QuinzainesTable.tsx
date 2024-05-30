@@ -1,4 +1,4 @@
-import { alpha, styled } from "@mui/material";
+import { Alert, AlertColor, alpha, styled } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
@@ -11,7 +11,7 @@ import {
 import { useData } from "../../providers/DataProvider";
 import Iconify from "../../components/iconify/Iconify";
 import { LoadingButton } from "@mui/lab";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   collection,
   doc,
@@ -84,15 +84,35 @@ interface QuinzaineTableProps {
 export default function QuinzainesTable({
   handleOpenModal,
 }: QuinzaineTableProps) {
-  const { quinzaineData, refetchQuinzaineData } = useData();
+  const { privateData, refetchPrivateData } = useData();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [errorSeverity, setErrorSeverity] = useState<AlertColor | undefined>(
+    "error"
+  );
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    if (error) {
+      timer = setTimeout(() => {
+        setError("");
+      }, 5000); // Set the timer to hide the error after 5 seconds
+    }
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [error]);
 
   async function changeActiveQuinzaine(id: number) {
     setLoading(true);
+    setError("");
+    setErrorSeverity("error");
 
     try {
       // Reference to your collection
-      const collectionRef = collection(db, "publicTest");
+      const collectionRef = collection(db, "Public");
 
       // Create a query to get all documents in the collection
       const q = query(collectionRef);
@@ -104,14 +124,14 @@ export default function QuinzainesTable({
       await runTransaction(db, async (transaction) => {
         querySnapshot.forEach((document) => {
           const docData = document.data();
-          const docRef = doc(db, "publicTest", document.id);
+          const docRef = doc(db, "Public", document.id);
 
           // Check the condition based on another field's value
           console.log(
             "docData.edition",
             docData.edition,
-            docData.edition === id,
-            id
+            docData.edition === Number(id),
+            Number(id)
           );
           console.log("typeof docData.edition", typeof docData.edition);
           if (docData.edition === Number(id)) {
@@ -129,12 +149,15 @@ export default function QuinzainesTable({
       });
 
       console.log("Documents updated successfully!");
-      refetchQuinzaineData();
+      refetchPrivateData();
       setLoading(false);
+      setErrorSeverity("success");
+      setError("Quinzaine " + id + " successfully set as active!");
     } catch (error) {
       setLoading(false);
 
       console.error("Error updating documents: ", error);
+      setError("Error updating documents");
     }
   }
 
@@ -151,7 +174,7 @@ export default function QuinzainesTable({
             ...buttonStyle,
             backgroundColor: loading
               ? undefined
-              : params.row.id == quinzaineData?.get("edition")
+              : params.row.id == privateData?.get("edition")
               ? "green"
               : "red",
           }}
@@ -159,7 +182,7 @@ export default function QuinzainesTable({
           loading={loading}
         >
           {params.row.id}
-          {params.row.id == quinzaineData?.get("edition") ? " active" : ""}
+          {params.row.id == privateData?.get("edition") ? " active" : ""}
         </LoadingButton>
       ),
     },
@@ -216,7 +239,7 @@ export default function QuinzainesTable({
       <StripedDataGrid
         style={{ height: "500px", width: "100%" }}
         disableRowSelectionOnClick
-        rows={Array.from(quinzaineData?.get("15n"), ([id, value]) => ({
+        rows={Array.from(privateData?.get("15n"), ([id, value]) => ({
           id,
           ...value,
         }))}
@@ -233,6 +256,17 @@ export default function QuinzainesTable({
           params.indexRelativeToCurrentPage % 2 === 0 ? "even" : "odd"
         }
       />
+      {error && (
+        <Alert
+          sx={{ mt: 3 }}
+          severity={errorSeverity}
+          onClose={() => {
+            setError("");
+          }}
+        >
+          {error}
+        </Alert>
+      )}
     </>
   );
 }

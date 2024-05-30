@@ -2,11 +2,10 @@ import Container from "@mui/material/Container";
 import { useData } from "../providers/DataProvider";
 import Loading from "../sections/loading/Loading";
 import { useEffect } from "react";
-import { Button } from "@mui/material";
 
 // --------------------------------------
 export default function StatsPage() {
-  const { privateData, loadingPrivate, refetchPrivateData, refetchPublicData } =
+  const { privateData, loadingPrivate, refetchPrivateData } =
     useData();
 
   //load doc from firebase then display account

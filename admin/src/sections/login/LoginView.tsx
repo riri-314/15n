@@ -32,8 +32,18 @@ const Login: React.FC = () => {
       router.push("/");
     }
     document.body.style.padding = "0";
+
+    let timer: NodeJS.Timeout;
+
+    if (error) {
+      timer = setTimeout(() => {
+        setError("");
+      }, 5000); // Set the timer to hide the error after 5 seconds
+    }
+
     return () => {
       document.body.style.padding = ""; // Reset padding when component unmounts
+      clearTimeout(timer);
     };
   }, []);
 

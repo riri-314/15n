@@ -1,21 +1,24 @@
 import { useData } from "../providers/DataProvider";
 import Loading from "../sections/loading/Loading";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import AdminView from "../sections/admin/AdminView";
 
 // --------------------------------------
 export default function AdminPage() {
-  const { quinzaineData, refetchQuinzaineData, loadingQuinzaine } = useData();
+  const { privateData, refetchPrivateData } = useData();
+  const [loading, setLoading] = useState(true);
 
-  // make sure that the data is fetched before rendering the page
   useEffect(() => {
-    //console.log("StatsPage useEffect: ", privateData, loading);
-    refetchQuinzaineData();
+    const fetchData = async () => {
+      await refetchPrivateData();
+      setLoading(false);
+    };
+    fetchData();
   }, []);
 
   return (
     <div style={{ width: "100%" }}>
-      {quinzaineData && !loadingQuinzaine ? <AdminView /> : <Loading />}
+      {privateData && !loading ? <AdminView /> : <Loading />}
     </div>
   );
 }

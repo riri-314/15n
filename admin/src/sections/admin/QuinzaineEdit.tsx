@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import Card from "@mui/material/Card";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SelectCustom from "../../components/input/Select";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase_config";
@@ -42,7 +42,7 @@ interface Edit15nProps {
 }
 
 export default function QuinzaineEdit({ data, close }: Edit15nProps) {
-  const { refetchQuinzaineData } = useData();
+  const { refetchPrivateData } = useData();
   const [autor, setAutor] = useState(data.autor);
   const [autorError, setAutorError] = useState(false);
   const [year, setYear] = useState(data.year);
@@ -54,6 +54,20 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
   const [success, setSuccess] = useState(false);
 
   const txtlenght1 = 15;
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    if (error) {
+      timer = setTimeout(() => {
+        setError("");
+      }, 5000); // Set the timer to hide the error after 5 seconds
+    }
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [error]);
 
   async function handleEdit15n() {
     setLoading(true);
@@ -73,7 +87,7 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
     } else {
       // update the quinzaine
       try {
-        const quinzaineRef = doc(db, "private", String(data.id));
+        const quinzaineRef = doc(db, "Private", String(data.id));
         const quinzaineData = {
           autor: autor,
           year: year,
@@ -83,7 +97,7 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
         setError("Success: Quinzaine updated");
         setSuccess(true);
         setLoading(false);
-        refetchQuinzaineData();
+        refetchPrivateData();
 
         return;
       } catch (error) {
@@ -166,7 +180,13 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
             )}
           </Grid>
           {error && (
-            <Alert sx={{ mt: 3 }} severity={errorSeverity}>
+            <Alert
+              sx={{ mt: 3 }}
+              severity={errorSeverity}
+              onClose={() => {
+                setError("");
+              }}
+            >
               {error}
             </Alert>
           )}

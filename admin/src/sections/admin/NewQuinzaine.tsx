@@ -27,12 +27,7 @@ function nextYear(year: string) {
 }
 
 export default function NewQuinzaine() {
-  const {
-    publicData,
-    quinzaineData,
-    refetchQuinzaineData,
-    refetchPrivateData,
-  } = useData();
+  const { privateData, refetchPrivateData } = useData();
   const [maxKey, setMaxKey] = useState(0);
   const [autor, setAutor] = useState("");
   const [autorError, setAutorError] = useState(false);
@@ -45,7 +40,7 @@ export default function NewQuinzaine() {
   const txtlenght1 = 15;
 
   function maxKeyFn() {
-    const qnzData = quinzaineData?.get("15n");
+    const qnzData = privateData?.get("15n");
     const maxKey = Math.max(
       ...Array.from(qnzData.keys(), (key) => Number(key))
     );
@@ -53,8 +48,19 @@ export default function NewQuinzaine() {
   }
 
   useEffect(() => {
+    let timer: NodeJS.Timeout;
     maxKeyFn();
-  }, []);
+
+    if (error) {
+      timer = setTimeout(() => {
+        setError("");
+      }, 5000); // Set the timer to hide the error after 5 seconds
+    }
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [error]);
 
   async function handleNew15n() {
     setLoading(true);
@@ -128,7 +134,7 @@ export default function NewQuinzaine() {
           // set all other docs to inactive in the public collection
         }
         for (const [key, value] of chunk.entries()) {
-          let data: Record<string, any> = {}
+          let data: Record<string, any> = {};
           const docRef = doc(
             db,
             "private",
@@ -151,7 +157,7 @@ export default function NewQuinzaine() {
         setError("Success: Quinzaine updated");
         setErrorSeverity("success");
         setLoading(false);
-        refetchQuinzaineData();
+        //refetchQuinzaineData();
         refetchPrivateData();
       }
     } catch (error) {
@@ -222,7 +228,13 @@ export default function NewQuinzaine() {
             </Grid>
           </Grid>
           {error && (
-            <Alert sx={{ mt: 3 }} severity={errorSeverity}>
+            <Alert
+              sx={{ mt: 3 }}
+              severity={errorSeverity}
+              onClose={() => {
+                setError("");
+              }}
+            >
               {error}
             </Alert>
           )}

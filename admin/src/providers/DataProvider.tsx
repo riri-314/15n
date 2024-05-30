@@ -40,7 +40,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     setLoadingPublic(true);
     var articlesMap = new Map();
     try {
-      const publicRef = collection(db, "publicTest");
+      const publicRef = collection(db, "Public");
       const queryDocs = query(
         publicRef,
         where("active", "==", true),
@@ -74,6 +74,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             });
           }
         });
+        // remove the count and num entry if they exist
+        articlesMap.delete("count");
+        articlesMap.delete("num");
         console.log("public data", articlesMap);
         setFetchedTimePrivatePublic(Date.now());
         setData(articlesMap);
@@ -108,11 +111,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         console.log("Edition:", edition);
         const privateArticlesRef = collection(
           db,
-          "private",
+          "Private",
           String(edition),
           "articles"
         );
-        const private15nRef = collection(db, "private");
+        const private15nRef = collection(db, "Private");
 
         // get the docs set to active
         try {
@@ -122,11 +125,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
             const articles = new Map(fetchedData.get("articles")); // deep copies the articles map
 
             for (const doc of docs.docs) {
-              const docId = doc.id;
               const docData = doc.data();
-              let articleObject = fetchedData.get("articles").get(docId); // object
-              articleObject = { ...articleObject, ...docData }; // new object
-              articles.set(docId, articleObject);
+              //Start New
+              const articlesT: Record<string, any> = docData.articles;
+              for (const [articleId, articleData] of Object.entries(articlesT)) {
+                let articleObject = fetchedData.get("articles").get(articleId);
+                articleObject = { ...articleObject, ...articleData };
+                articles.set(articleId, articleObject);
+              }
+              //End New
             }
             fetchedData.set("articles", articles); // add new article map to the fetchedData
             // put the 15n data in a new map
