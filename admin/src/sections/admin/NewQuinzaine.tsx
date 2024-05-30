@@ -14,11 +14,17 @@ import {
   collection,
   doc,
   getDocs,
+  serverTimestamp,
   setDoc,
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../../firebase_config";
 import { useData } from "../../providers/DataProvider";
+
+function nextYear(year: string) {
+  const [_startYear, endYear] = year.split("-");
+  return `${Number(endYear)}-${Number(endYear) + 1}`;
+}
 
 export default function NewQuinzaine() {
   const {
@@ -61,6 +67,13 @@ export default function NewQuinzaine() {
     // set the new doc in public to active
     // set the other docs in public to inactive
 
+    if (autor.length == 0 || autor.length > txtlenght1) {
+      setErrorSeverity("error");
+      setError("Error: Autor name is invalid");
+      setLoading(false);
+      return;
+    }
+
     const Data = await refetchPrivateData(); //it get us private, 15n and public data. The "await" is necessary, dont listen to the editor, he is lying.
     if (!Data) {
       setError("Error fetching data");
@@ -99,23 +112,23 @@ export default function NewQuinzaine() {
     try {
       for (let i = 0; i < chunks.length; i++) {
         const batch = writeBatch(db);
-        const privateCollRef = collection(
-          db,
-          "private",
-          String(edition + 1),
-          "articles"
-        );
         const chunk: Map<string, any> = chunks[i];
+        console.log("chunk", chunk);
         if (i === 0) {
           const newDocRef = doc(db, "private", String(edition + 1));
           setDoc(newDocRef, {
             edition: edition + 1,
             autor: autor,
-            year: "2025-2026",
+            year: nextYear(Data.get("15n").get(String(edition)).year),
+            transactions: {},
+            creation_date: serverTimestamp(),
           });
           // public stuff
+          // copy from public data, update the edition field
+          // set all other docs to inactive in the public collection
         }
         for (const [key, value] of chunk.entries()) {
+          let data: Record<string, any> = {}
           const docRef = doc(
             db,
             "private",
@@ -123,10 +136,23 @@ export default function NewQuinzaine() {
             "articles",
             key
           );
-          const docData = value;
-          batch.set(docRef, docData);
+          // available
+          data.available = value.available;
+          // price in
+          data.price_in = value.price_in;
+          // stock
+          data.stock = value.stock;
+          data.new = false;
+          data.sales = 0;
+          data.transactions = {};
+          batch.set(docRef, data);
         }
         await batch.commit();
+        setError("Success: Quinzaine updated");
+        setErrorSeverity("success");
+        setLoading(false);
+        refetchQuinzaineData();
+        refetchPrivateData();
       }
     } catch (error) {
       setError("Error updating documents: " + error);

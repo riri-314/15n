@@ -1,6 +1,21 @@
-make the reload data header, ok
-fixed slow NavBar perfs, ok
-make the Quinzaine table, ok
-make the edit quinzaine data modal, ok
-make the new quinzaine form and logic,  
+make the new quinzaine form and logic, on the way
 make the admin page,
+
+CARTE
+In carte page, add options sot set the beer types. 
+On load carte page ,translate type number to text. 
+Table with type number and type text that can be edited, option to add new type.
+beer type should be in a other doc. Stored as a nested field in the public docs.
+
+add a article. Dont know the id of the doc to write to.
+DataProvider should write the id of the doc to write to.
+Update public docs or concerned private doc after each update of the data.
+Function in dataProvider to only refresh the concerned private doc.
+
+SCANNER
+Write to private: In the 15n doc, in the concerned articles docs. = 2 write (writeBatch)
+In the 15n doc: vol_count, money_count, beer_count, article_count
+In the private doc: sales, sales_tot
+
+STOCK
+same idea, maybe improve stock transactions?
