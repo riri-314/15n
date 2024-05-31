@@ -11,9 +11,7 @@ import Card from "@mui/material/Card";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
 import {
-  collection,
   doc,
-  getDocs,
   serverTimestamp,
   setDoc,
   writeBatch,
@@ -27,8 +25,7 @@ function nextYear(year: string) {
 }
 
 export default function NewQuinzaine() {
-  const { privateData, refetchPrivateData } = useData();
-  const [maxKey, setMaxKey] = useState(0);
+  const { refetchPrivateData, quinzaineData } = useData();
   const [autor, setAutor] = useState("");
   const [autorError, setAutorError] = useState(false);
   const [error, setError] = useState("");
@@ -39,17 +36,8 @@ export default function NewQuinzaine() {
 
   const txtlenght1 = 15;
 
-  function maxKeyFn() {
-    const qnzData = privateData?.get("15n");
-    const maxKey = Math.max(
-      ...Array.from(qnzData.keys(), (key) => Number(key))
-    );
-    setMaxKey(maxKey);
-  }
-
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    maxKeyFn();
 
     if (error) {
       timer = setTimeout(() => {
@@ -64,14 +52,20 @@ export default function NewQuinzaine() {
 
   async function handleNew15n() {
     setLoading(true);
-    // fetch private data from data provider. Wait for data
-    // check that privateData.edition = maxedition, if not throw error
-    // We have the data, we can writebatch
-    // create new doc in private collection with the new data
-    // in this doc create a collection "articles", copy into it each doc that was in the previous_quinzaine->articles collection. While copying dont copy the transactions field, set sales to 0, set new to false
-    // copy the docs in public that have their edition field set to maxKey. And set their edition field to maxKey+1
-    // set the new doc in public to active
-    // set the other docs in public to inactive
+    // Fetch quinzaineData
+    // add option to refetch 15n data tpo not chnge the data state, so i can  compare that the data is the same, else throw error
+    // dont need to fetch articles in the dataprovider. Will be fetched here
+    //
+    // fetch all Private.maxId.articles, save doc?id and doc.data() in a object
+    // fetch all Public docs where edition == maxId, save doc.data() in a object
+    //
+    // Private: create YYth doc with {author, creation_date, transactions, year}
+    //  -> copy 300 docs at a time @ private.maxId+1.articles, writebatch loop until all docs are copied
+    //  -> modifie some fields of this docs {added_stock=0, sales=0, stock=stock, stock_init=stock, transactions={}}
+    //
+    // Public:
+    //  -> wriebatch all docs
+    //  -> modifie some fields, {active=true, edition=maxId+1, article.new=false}
 
     if (autor.length == 0 || autor.length > txtlenght1) {
       setErrorSeverity("error");
@@ -82,16 +76,16 @@ export default function NewQuinzaine() {
 
     const Data = await refetchPrivateData(); //it get us private, 15n and public data. The "await" is necessary, dont listen to the editor, he is lying.
     if (!Data) {
-      setError("Error fetching data");
+      setError("Error fetching data. No data was written");
       setErrorSeverity("error");
       setLoading(false);
       return;
     }
     const edition = Data.get("edition");
-    if (edition !== maxKey) {
+    if (edition !== 95) { // TODO
       // edge case, really should not happen
       setError(
-        "Edition is not the last one: reload the page should fix it. Ne data was written"
+        "Please switch to the latest quinzaine to create a new one. No data was written"
       );
       setErrorSeverity("error");
       setLoading(false);
@@ -100,7 +94,7 @@ export default function NewQuinzaine() {
 
     const articleCount = Data.get("articles").size;
     if (articleCount === 0) {
-      setError("No articles found in the last quinzaine");
+      setError("No articles found in the last quinzaine. No data was written");
       setErrorSeverity("error");
       setLoading(false);
       return;
@@ -109,6 +103,7 @@ export default function NewQuinzaine() {
     const originalMap = Data.get("articles");
     const arrayFromMap: any[] = Array.from(originalMap.entries());
 
+    // making chunks to update by 300 docs at a time, to avoid the 500 docs limit of a batch
     let chunks: Map<string, any>[] = [];
     for (let i = 0; i < arrayFromMap.length; i += 300) {
       chunks.push(new Map(arrayFromMap.slice(i, i + 300)));
@@ -139,7 +134,7 @@ export default function NewQuinzaine() {
             db,
             "private",
             String(edition + 1),
-            "articles",
+            "articles", //to be changed to adopt the new db schema
             key
           );
           // available
@@ -187,7 +182,7 @@ export default function NewQuinzaine() {
       >
         <CardContent>
           <Typography variant="h5" sx={{ mb: 1 }}>
-            Create {maxKey + 1}th quinzaine
+            Create the {quinzaineData?.get("maxId") + 1}th quinzaine
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>

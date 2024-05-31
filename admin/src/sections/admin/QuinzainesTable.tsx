@@ -18,6 +18,7 @@ import {
   getDocs,
   query,
   runTransaction,
+  where,
 } from "firebase/firestore";
 import { db } from "../../firebase_config";
 
@@ -84,8 +85,9 @@ interface QuinzaineTableProps {
 export default function QuinzainesTable({
   handleOpenModal,
 }: QuinzaineTableProps) {
-  const { privateData, refetchPrivateData } = useData();
-  const [loading, setLoading] = useState(false);
+  const { quinzaineData, refetchQuinzaineData, refetchPublicData } = useData();
+  const [loadingActive, setLoadingActive] = useState(false);
+  const [loadingDataSaver, setLoadingDataSaver] = useState(false);
   const [error, setError] = useState("");
   const [errorSeverity, setErrorSeverity] = useState<AlertColor | undefined>(
     "error"
@@ -105,8 +107,32 @@ export default function QuinzainesTable({
     };
   }, [error]);
 
+  function setCurrent(id: number) {
+    refetchPublicData(id);
+    refetchQuinzaineData();
+  }
+
+  function extractObjectsFromQuinzaineData(): Array<{
+    id: string;
+    value: Record<string, any>;
+  }> {
+    const result: Array<{ id: string; value: Record<string, any> }> = [];
+
+    const quinzaineMap = quinzaineData?.get("15n");
+    if (quinzaineMap && quinzaineMap instanceof Map) {
+      //console.log("Test pass");
+      quinzaineMap.forEach((value, id) => {
+        result.push({ id, ...value });
+      });
+    }
+
+    return result;
+  }
+
+  //console.log("Qnzn test: ",extractObjectsFromQuinzaineData());
+
   async function changeActiveQuinzaine(id: number) {
-    setLoading(true);
+    setLoadingActive(true);
     setError("");
     setErrorSeverity("error");
 
@@ -126,14 +152,7 @@ export default function QuinzainesTable({
           const docData = document.data();
           const docRef = doc(db, "Public", document.id);
 
-          // Check the condition based on another field's value
-          console.log(
-            "docData.edition",
-            docData.edition,
-            docData.edition === Number(id),
-            Number(id)
-          );
-          console.log("typeof docData.edition", typeof docData.edition);
+
           if (docData.edition === Number(id)) {
             // Update the field
             transaction.update(docRef, {
@@ -149,12 +168,49 @@ export default function QuinzainesTable({
       });
 
       console.log("Documents updated successfully!");
-      refetchPrivateData();
-      setLoading(false);
+      refetchQuinzaineData();
+      setLoadingActive(false);
       setErrorSeverity("success");
-      setError("Quinzaine " + id + " successfully set as active!");
+      setError(id + "th quinzaine successfully set as active!");
     } catch (error) {
-      setLoading(false);
+      setLoadingActive(false);
+
+      console.error("Error updating documents: ", error);
+      setError("Error updating documents");
+    }
+  }
+
+  async function changeDataSaver(id: number, oldStatus: boolean) {
+    setLoadingDataSaver(true);
+    setError("");
+    setErrorSeverity("error");
+    //console.log("id: ", id, " oldStatus: ", oldStatus);
+
+    try {
+      const publicRef = collection(db, "Public");
+      const queryDocs = query(publicRef, where("edition", "==", Number(id)));
+
+      // Get all documents matching the query
+      const querySnapshot = await getDocs(queryDocs);
+
+      // Run a transaction to ensure atomicity
+      await runTransaction(db, async (transaction) => {
+        querySnapshot.forEach((document) => {
+          const docRef = doc(db, "Public", document.id);
+          transaction.update(docRef, {
+            dataSaver: !oldStatus,
+          });
+        });
+      });
+      const txt = oldStatus ? "disabled" : "enabled";
+
+      console.log("Documents updated successfully!");
+      refetchQuinzaineData();
+      setLoadingDataSaver(false);
+      setErrorSeverity("success");
+      setError("Data saver " + txt + " for " + id + "th quinzaine");
+    } catch (error) {
+      setLoadingDataSaver(false);
 
       console.error("Error updating documents: ", error);
       setError("Error updating documents");
@@ -172,17 +228,40 @@ export default function QuinzainesTable({
         <LoadingButton
           style={{
             ...buttonStyle,
-            backgroundColor: loading
+            backgroundColor: loadingActive
               ? undefined
-              : params.row.id == privateData?.get("edition")
+              : params.row.id == quinzaineData?.get("active")
               ? "green"
               : "red",
           }}
           onClick={() => changeActiveQuinzaine(params.row.id as number)}
-          loading={loading}
+          loading={loadingActive}
         >
           {params.row.id}
-          {params.row.id == privateData?.get("edition") ? " active" : ""}
+          {params.row.id == quinzaineData?.get("active") ? " active" : ""}
+        </LoadingButton>
+      ),
+    },
+    {
+      field: "current",
+      headerName: "Current",
+      flex: 1,
+      editable: false,
+      minWidth: 100,
+      renderCell: (params: GridCellParams) => (
+        <LoadingButton
+          style={{
+            ...buttonStyle,
+            backgroundColor: loadingActive
+              ? undefined
+              : params.row.current
+              ? "green"
+              : "red",
+          }}
+          onClick={() => setCurrent(params.row.id as number)}
+          loading={loadingActive}
+        >
+          {params.row.current ? "Current" : "Not current"}
         </LoadingButton>
       ),
     },
@@ -215,9 +294,32 @@ export default function QuinzainesTable({
       },
     },
     {
+      field: "dataSaver",
+      headerName: "Data saver",
+      flex: 1,
+      editable: false,
+      minWidth: 100,
+      renderCell: (params: GridCellParams) => (
+        <LoadingButton
+          style={{
+            ...buttonStyle,
+            backgroundColor: loadingDataSaver
+              ? undefined
+              : params.row.dataSaver
+              ? "green"
+              : "red",
+          }}
+          onClick={() => changeDataSaver(params.row.id, params.row.dataSaver)}
+          loading={loadingDataSaver}
+        >
+          {params.row.dataSaver ? "Enabled" : "Disabled"}
+        </LoadingButton>
+      ),
+    },
+    {
       field: "actions",
       type: "actions",
-      headerName: "Éditer",
+      headerName: "Edit",
       minWidth: 100,
       cellClassName: "actions",
       getActions: (params: GridRowParams) => {
@@ -234,15 +336,13 @@ export default function QuinzainesTable({
       },
     },
   ];
+
   return (
     <>
       <StripedDataGrid
         style={{ height: "500px", width: "100%" }}
         disableRowSelectionOnClick
-        rows={Array.from(privateData?.get("15n"), ([id, value]) => ({
-          id,
-          ...value,
-        }))}
+        rows={extractObjectsFromQuinzaineData()}
         columns={columns}
         getRowId={(row) => row.id}
         autoPageSize

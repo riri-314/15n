@@ -1,5 +1,8 @@
 make the new quinzaine form and logic, on the way
+Catch error page
+Dynamic text on admin login
 make the admin page,
+
 
 CARTE
 In carte page, add options sot set the beer types. 

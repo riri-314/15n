@@ -5,12 +5,12 @@ import AdminView from "../sections/admin/AdminView";
 
 // --------------------------------------
 export default function AdminPage() {
-  const { privateData, refetchPrivateData } = useData();
+  const { quinzaineData, refetchQuinzaineData } = useData();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      await refetchPrivateData();
+      await refetchQuinzaineData();
       setLoading(false);
     };
     fetchData();
@@ -18,7 +18,7 @@ export default function AdminPage() {
 
   return (
     <div style={{ width: "100%" }}>
-      {privateData && !loading ? <AdminView /> : <Loading />}
+      {quinzaineData && !loading ? <AdminView /> : <Loading />}
     </div>
   );
 }
