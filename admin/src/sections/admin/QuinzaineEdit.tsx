@@ -42,8 +42,8 @@ interface Edit15nProps {
 }
 
 export default function QuinzaineEdit({ data, close }: Edit15nProps) {
-  const { refetchPrivateData } = useData();
-  const [autor, setAutor] = useState(data.autor);
+  const { refetchQuinzaineData } = useData();
+  const [autor, setAutor] = useState(data.author);
   const [autorError, setAutorError] = useState(false);
   const [year, setYear] = useState(data.year);
   const [error, setError] = useState("");
@@ -89,16 +89,15 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
       try {
         const quinzaineRef = doc(db, "Private", String(data.id));
         const quinzaineData = {
-          autor: autor,
+          author: autor,
           year: year,
         };
         await setDoc(quinzaineRef, quinzaineData, { merge: true });
+        await refetchQuinzaineData();
         setErrorSeverity("success");
         setError("Success: Quinzaine updated");
         setSuccess(true);
         setLoading(false);
-        refetchPrivateData();
-
         return;
       } catch (error) {
         setErrorSeverity("error");
@@ -119,6 +118,7 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
+              disabled={success}
                 error={autorError}
                 label="Autor"
                 value={autor}
@@ -142,6 +142,7 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
             </Grid>
             <Grid item xs={12} sm={6} sx={{ zIndex: 9999 }}>
               <SelectCustom
+              disabled={success}
                 option={generateOptions(data.year)}
                 change={(_event: any, val: any) => {
                   console.log("val", val);

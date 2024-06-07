@@ -85,8 +85,9 @@ interface QuinzaineTableProps {
 export default function QuinzainesTable({
   handleOpenModal,
 }: QuinzaineTableProps) {
-  const { quinzaineData, refetchQuinzaineData, refetchPublicData } = useData();
+  const { quinzaineData, refetchQuinzaineData } = useData();
   const [loadingActive, setLoadingActive] = useState(false);
+  const [loadingCurrent, setLoadingCurrent] = useState(false);
   const [loadingDataSaver, setLoadingDataSaver] = useState(false);
   const [error, setError] = useState("");
   const [errorSeverity, setErrorSeverity] = useState<AlertColor | undefined>(
@@ -107,9 +108,12 @@ export default function QuinzainesTable({
     };
   }, [error]);
 
-  function setCurrent(id: number) {
-    refetchPublicData(id);
-    refetchQuinzaineData();
+  async function setCurrent(id: number) {
+    setLoadingCurrent(true);
+    await refetchQuinzaineData(true, id);
+    setLoadingCurrent(false);
+    setErrorSeverity("success");
+    setError(id + "th quinzaine successfully set as current!");
   }
 
   function extractObjectsFromQuinzaineData(): Array<{
@@ -133,6 +137,7 @@ export default function QuinzainesTable({
 
   async function changeActiveQuinzaine(id: number) {
     setLoadingActive(true);
+    setLoadingCurrent(true);
     setError("");
     setErrorSeverity("error");
 
@@ -170,11 +175,12 @@ export default function QuinzainesTable({
       console.log("Documents updated successfully!");
       refetchQuinzaineData();
       setLoadingActive(false);
+      setLoadingCurrent(false);
       setErrorSeverity("success");
       setError(id + "th quinzaine successfully set as active!");
     } catch (error) {
       setLoadingActive(false);
-
+      setLoadingCurrent(false);
       console.error("Error updating documents: ", error);
       setError("Error updating documents");
     }
@@ -198,7 +204,7 @@ export default function QuinzainesTable({
         querySnapshot.forEach((document) => {
           const docRef = doc(db, "Public", document.id);
           transaction.update(docRef, {
-            dataSaver: !oldStatus,
+            data_saver: !oldStatus,
           });
         });
       });
@@ -252,21 +258,21 @@ export default function QuinzainesTable({
         <LoadingButton
           style={{
             ...buttonStyle,
-            backgroundColor: loadingActive
+            backgroundColor: loadingCurrent
               ? undefined
               : params.row.current
               ? "green"
               : "red",
           }}
           onClick={() => setCurrent(params.row.id as number)}
-          loading={loadingActive}
+          loading={loadingCurrent}
         >
           {params.row.current ? "Current" : "Not current"}
         </LoadingButton>
       ),
     },
     {
-      field: "autor",
+      field: "author",
       headerName: "Autor",
       flex: 1,
       editable: false,
@@ -294,7 +300,7 @@ export default function QuinzainesTable({
       },
     },
     {
-      field: "dataSaver",
+      field: "data_saver",
       headerName: "Data saver",
       flex: 1,
       editable: false,

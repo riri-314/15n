@@ -48,7 +48,7 @@ export default function AdminView() {
           Qiunzaine form
         </Typography>
         <Typography variant="body2">
-          Create a new edition. Create the {quinzaineData?.get("maxId") + 1}th edition based on data in the {quinzaineData?.get("maxId")}th edition 
+          Create a new edition. Create the {quinzaineData?.get("maxId") + 1}th edition based on data from the {quinzaineData?.get("maxId")}th edition 
         </Typography>
       </CardContent>
     </Card>

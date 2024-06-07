@@ -14,6 +14,7 @@ interface OptionProps {
   option: object;
   helpText?: string;
   isError?: boolean;
+  disabled?: boolean;
   change: (event: any, val: any) => void;
 }
 
@@ -22,11 +23,13 @@ export default function SelectCustom({
   option,
   helpText,
   isError,
+  disabled,
   change,
 }: OptionProps) {
   return (
     <>
       <Select
+        disabled={disabled}
         style={isError ? { color: "red", borderColor: "red" } : {}}
         defaultValue={defaultValue}
         placeholder="Choisir une proportion"
@@ -86,8 +89,7 @@ const Button = React.forwardRef(function Button<
   Multiple extends boolean
 >(
   props: SelectRootSlotProps<TValue, Multiple>,
-  ref: React.ForwardedRef<HTMLButtonElement>,
-  
+  ref: React.ForwardedRef<HTMLButtonElement>
 ) {
   const { ownerState, ...other } = props;
   return (
@@ -201,5 +203,3 @@ const Option = styled(BaseOption)(
   }
   `
 );
-
-

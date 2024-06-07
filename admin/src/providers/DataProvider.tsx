@@ -15,7 +15,10 @@ interface DataContextValue {
   quinzaineData: Map<string, any> | null;
   refetchPublicData: (id?: number | null) => void;
   refetchPrivateData: (id?: number | null) => Promise<Map<string, any>>;
-  refetchQuinzaineData: () => Promise<Map<string, any>>;
+  refetchQuinzaineData: (
+    update?: boolean | undefined,
+    id?: number | null
+  ) => Promise<Map<string, any>>;
   loadingPrivate: boolean;
   loadingPublic: boolean;
   loadingQuinzaine: boolean;
@@ -82,7 +85,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           }
         });
         // remove the count and num entry if they exist
-        articlesMap.delete("count");
+        articlesMap.delete("article_count");
         articlesMap.delete("num");
         console.log("public data", articlesMap);
         setFetchedTimePrivatePublic(Date.now());
@@ -185,7 +188,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
   };
 
-  const fetchQuinzaineData = async (): Promise<Map<string, any>> => {
+  const fetchQuinzaineData = async (
+    update: boolean | undefined,
+    id: number | null = null
+  ): Promise<Map<string, any>> => {
     setLoadingQuinzaine(true);
     //await new Promise((resolve) => setTimeout(resolve, 6000));
     const publicRef = collection(db, "Public");
@@ -195,7 +201,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     let active;
     let articles: Record<string, any> = {};
     try {
-      const fetchedData = await fetchPublicData();
+      //const fetchedData = await fetchPublicData();
+      let fetchedData;
+      if (id) {
+        fetchedData = await fetchPublicData(id);
+      } else {
+        fetchedData = await fetchPublicData();
+      }
       const currentEdition = Number(fetchedData.get("edition"));
       const publicDocs = await getDocs(publicRef);
       const privateDocs = await getDocs(privateRef);
@@ -267,10 +279,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         quinzaineMap.set("active", active); // active quinzaine
         quinzaineMap.set("maxId", maxEdition); // the biggest qnzn id
         console.log("Quinzaine data:", quinzaineMap);
-        setQuinzaineData(quinzaineMap);
-        setFetchedTimeQuinzaine(Date.now());
-        setLoadingQuinzaine(false);
-        return quinzaineMap;
+        if (update === false) {
+          return quinzaineMap;
+        } else {
+          setQuinzaineData(quinzaineMap);
+          setFetchedTimeQuinzaine(Date.now());
+          setLoadingQuinzaine(false);
+          return quinzaineMap;
+        }
       } else {
         console.log("No quinzaine data fetched");
         setLoadingQuinzaine(false);
@@ -314,8 +330,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
   };
 
-  const refetchQuinzaineData = (): Promise<Map<string, any>> => {
-    return fetchQuinzaineData(); // Function to refetch data
+  const refetchQuinzaineData = async (
+    update: boolean | undefined,
+    id: number | null = null
+  ): Promise<Map<string, any>> => {
+    return fetchQuinzaineData(update, id); // Function to refetch data
   };
 
   return (
