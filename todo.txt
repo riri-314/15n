@@ -1,9 +1,13 @@
 make the new quinzaine form and logic, Ok
-Catch error page
-Dynamic text on admin login
-make the admin page, on the way
+make the admin page, Ok
+make the add beer form, 
+set a field in publicData when changing to a non maxId edition (warning your are scanning on a edition which is not the latest)
 make the scanner page, 
-
+Catch error page,
+Fix blur and touctch on navbar,
+Dynamic text on admin login, 
+Multi language,
+Dark theme,
 
 CARTE
 In carte page, add options sot set the beer types. 

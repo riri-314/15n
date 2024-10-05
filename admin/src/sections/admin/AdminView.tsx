@@ -10,50 +10,53 @@ import QuinzaineEdit from "./QuinzaineEdit";
 import NewQuinzaine from "./NewQuinzaine";
 import { useData } from "../../providers/DataProvider";
 
-
 export default function AdminView() {
-  const [openModalComitard, setOpenModalComitard] = useState(false);
+  const [openModalComitard, setOpenModalQuinzaine] = useState(false);
   const [modal15nData, setModal15nData] = useState<any | null>(null);
   const { quinzaineData } = useData();
 
-
   const tableText = (
-    <Card sx={{ minWidth: 275, boxShadow: 0, border: 1, borderColor: "divider" }}>
+    <Card
+      sx={{ minWidth: 275, boxShadow: 0, border: 1, borderColor: "divider" }}
+    >
       <CardContent>
         <Typography variant="h5" component="div">
           Quinzaine table <b>Danger Zone</b>
         </Typography>
         <Typography variant="body2">
-          This table displays the quinzaines in the database. Click on the id
-          button to set the quinzaine as active. Click on the edit button to edit
-          the quinzaine data. <b>Be carful, dont be stupid.</b>
+          Ce tableau affiche les quinzaines dans la base de données. Cliquez sur
+          le bouton id pour définir la quinzaine comme active. Cliquez sur le
+          bouton edit pour éditer les données de la quinzaine.{" "}
+          <b>Soyez prudent, ne soyez pas stupide.</b>
           <br />
-          You are currently seeing the data for the {quinzaineData?.get("current")}th quinzaine. By default you
-          well see data for the {quinzaineData?.get("active")}th quinzaine as this is the one set as active.
+          Tu es actuellement en train de voir les données pour la{" "}
+          {quinzaineData?.get("current")}éme quinzaine. Par défaut, vous verrez
+          les données pour la {quinzaineData?.get("active")}éme quinzaine car
+          c'est celle qui est définie par defaut.
           <br />
-          <b>Active: </b>This is the quinzaine that will be loaded by default when
-          the app is opened. <b>Be carful</b>
+          <b>Active: </b>C'est la quinzaine que vous voyez pour le moment.
           <br />
-          <b>Current: </b>This is the quinzaine that is currently being displayed
-          in the app. By default, this is the same as the active quinzaine.
+          <b>Defaut: </b>C'est la quinzaine qui sera chargée par defaut. <b>Soyez prudent!</b>
         </Typography>
       </CardContent>
     </Card>
   );
 
   const formText = (
-    <Card sx={{ minWidth: 275, boxShadow: 0, border: 1, borderColor: "divider" }}>
+    <Card
+      sx={{ minWidth: 275, boxShadow: 0, border: 1, borderColor: "divider" }}
+    >
       <CardContent>
         <Typography variant="h5" component="div">
-          Qiunzaine form
+          Créer une Quinzaine
         </Typography>
         <Typography variant="body2">
-          Create a new edition. Create the {quinzaineData?.get("maxId") + 1}th edition based on data from the {quinzaineData?.get("maxId")}th edition 
+          Créer une nouvelle quinzaine. Créer la {quinzaineData?.get("maxId") + 1}éme
+          édition basée sur les données de la {quinzaineData?.get("maxId")}éme édition. Comment faire? Entrer le nom du chez 15N, cliquer sur le bouton, attendre et ne surtout par fermer la page web. Enjoy!
         </Typography>
       </CardContent>
     </Card>
   );
-  
 
   return (
     <>
@@ -64,8 +67,8 @@ export default function AdminView() {
           <QuinzainesTable
             handleOpenModal={(data: any) => {
               setModal15nData(data);
-              setOpenModalComitard(true);
-              console.log("data: ", data);
+              setOpenModalQuinzaine(true);
+              console.log("Modal data: ", data);
             }}
           />
         </div>
@@ -75,7 +78,7 @@ export default function AdminView() {
       </Stack>
       <Modal
         open={openModalComitard}
-        onClose={() => setOpenModalComitard(false)}
+        onClose={() => setOpenModalQuinzaine(false)}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
         sx={{
@@ -89,7 +92,7 @@ export default function AdminView() {
       >
         <QuinzaineEdit
           data={modal15nData}
-          close={() => setOpenModalComitard(false)}
+          close={() => setOpenModalQuinzaine(false)}
         />
       </Modal>
     </>

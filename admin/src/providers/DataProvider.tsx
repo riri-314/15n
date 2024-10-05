@@ -27,7 +27,7 @@ interface DataContextValue {
 }
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
-  const [publicData, setData] = useState<Map<string, any> | null>(null);
+  const [publicData, setPublicData] = useState<Map<string, any> | null>(null);
   const [privateData, setPrivateData] = useState<Map<string, any> | null>(null);
   const [quinzaineData, setQuinzaineData] = useState<Map<string, any> | null>(
     null
@@ -89,7 +89,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         articlesMap.delete("num");
         console.log("public data", articlesMap);
         setFetchedTimePrivatePublic(Date.now());
-        setData(articlesMap);
+        setPublicData(articlesMap);
         setLoadingPublic(false);
         return articlesMap;
       } else {

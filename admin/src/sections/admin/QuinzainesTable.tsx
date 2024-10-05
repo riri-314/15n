@@ -229,7 +229,7 @@ export default function QuinzainesTable({
       headerName: "ID",
       flex: 1,
       editable: false,
-      minWidth: 100,
+      minWidth: 110,
       renderCell: (params: GridCellParams) => (
         <LoadingButton
           style={{
@@ -253,7 +253,7 @@ export default function QuinzainesTable({
       headerName: "Current",
       flex: 1,
       editable: false,
-      minWidth: 100,
+      minWidth: 140,
       renderCell: (params: GridCellParams) => (
         <LoadingButton
           style={{
@@ -291,7 +291,7 @@ export default function QuinzainesTable({
       width: 150,
       editable: false,
       flex: 1,
-      minWidth: 100,
+      minWidth: 190,
       valueGetter: (value) => {
         if (!value) {
           return value;
@@ -304,21 +304,21 @@ export default function QuinzainesTable({
       headerName: "Data saver",
       flex: 1,
       editable: false,
-      minWidth: 100,
+      minWidth: 110,
       renderCell: (params: GridCellParams) => (
         <LoadingButton
           style={{
             ...buttonStyle,
             backgroundColor: loadingDataSaver
               ? undefined
-              : params.row.dataSaver
+              : params.row.data_saver
               ? "green"
               : "red",
           }}
-          onClick={() => changeDataSaver(params.row.id, params.row.dataSaver)}
+          onClick={() => changeDataSaver(params.row.id, params.row.data_saver)}
           loading={loadingDataSaver}
         >
-          {params.row.dataSaver ? "Enabled" : "Disabled"}
+          {params.row.data_saver ? "Enabled" : "Disabled"}
         </LoadingButton>
       ),
     },

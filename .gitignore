@@ -78,6 +78,8 @@ node_modules
 dist
 dist-ssr
 *.local
+quinzaine-3fb2e-firebase-adminsdk-b0oop-3ac37556df.json
+firestore_backup_*/
 
 # Editor directories and files
 .vscode/*
