@@ -8,6 +8,23 @@ export default function AdminPage() {
   const { quinzaineData, refetchQuinzaineData } = useData();
   const [loading, setLoading] = useState(true);
 
+  function loadComponent() {
+    //console.log("loadComponent");
+    if (quinzaineData != null) {
+      if (loading) {
+        return <Loading text="Chargement en cours..." />;
+      } else {
+        return <AdminView />;
+      }
+    } else {
+      if (loading) {
+        return <Loading text="Chargement en cours..." />;
+      } else {
+        return <Loading text="Erreur lors du chargement des données." />;
+      }
+    }
+  }
+
   useEffect(() => {
     const fetchData = async () => {
       await refetchQuinzaineData();
@@ -16,9 +33,6 @@ export default function AdminPage() {
     fetchData();
   }, []);
 
-  return (
-    <div style={{ width: "100%" }}>
-      {quinzaineData && !loading ? <AdminView /> : <Loading />}
-    </div>
-  );
+  return <div style={{ width: "100%" }}>{loadComponent()}</div>;
 }
+//       {quinzaineData && !loading ? <AdminView /> : <Loading />}

@@ -4,7 +4,9 @@ import Typography from '@mui/material/Typography';
 
 // ----------------------------------------------------------------------
 
-export default function Loading() {
+
+
+export default function Loading({text = "Chargement..."}: {text?: string}) {
   return (
     <>
       <Container>
@@ -21,7 +23,7 @@ export default function Loading() {
           }}
         >
           <Typography variant="h3" sx={{ mb: 3 }}>
-            Chargement !
+            {text}
           </Typography>
         </Box>
       </Container>

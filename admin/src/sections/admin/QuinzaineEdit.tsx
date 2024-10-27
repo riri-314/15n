@@ -43,8 +43,8 @@ interface Edit15nProps {
 
 export default function QuinzaineEdit({ data, close }: Edit15nProps) {
   const { refetchQuinzaineData } = useData();
-  const [autor, setAutor] = useState(data.author);
-  const [autorError, setAutorError] = useState(false);
+  const [author, setAuthor] = useState(data.author);
+  const [authorError, setAuthorError] = useState(false);
   const [year, setYear] = useState(data.year);
   const [error, setError] = useState("");
   const [errorSeverity, setErrorSeverity] = useState<AlertColor | undefined>(
@@ -74,34 +74,34 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
     setError("");
     setErrorSeverity("error");
     setSuccess(false);
-    if (autor.length == 0 || autor.length > txtlenght1) {
+    if (author.length == 0 || author.length > txtlenght1) {
       setErrorSeverity("error");
-      setError("Error: Autor name is invalid");
+      setError("Erreur: Nom de l'auteur invalide");
       setLoading(false);
       return;
     } else if (year.length == 0 || year.length > 9) {
       setErrorSeverity("error");
-      setError("Error: Year is invalid");
+      setError("Erreur: Année invalide");
       setLoading(false);
       return;
     } else {
       // update the quinzaine
       try {
-        const quinzaineRef = doc(db, "Private", String(data.id));
+        const quinzaineRef = doc(db, "Quinzaines", String(data.id));
         const quinzaineData = {
-          author: autor,
+          author: author,
           year: year,
         };
         await setDoc(quinzaineRef, quinzaineData, { merge: true });
         await refetchQuinzaineData();
         setErrorSeverity("success");
-        setError("Success: Quinzaine updated");
+        setError("Succès: Quinzaine mise à jour avec succès");
         setSuccess(true);
         setLoading(false);
         return;
       } catch (error) {
         setErrorSeverity("error");
-        setError("Error: Failed to update the quinzaine");
+        setError("Erreur: erreur lors de la mise à jour de la quinzaine");
         setLoading(false);
         return;
       }
@@ -113,30 +113,30 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
       <Card sx={{ width: "90%", mb: 4, ml: "auto", mr: "auto" }}>
         <CardContent>
           <Typography variant="h5" sx={{ mb: 1 }}>
-            Edit {data.id}th quinzaine
+            Editer {data.id}éme quinzaine
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
               disabled={success}
-                error={autorError}
-                label="Autor"
-                value={autor}
+                error={authorError}
+                label="Auteur"
+                value={author}
                 fullWidth
                 onChange={(e) => {
                   let value = e.target.value;
                   if (value.length <= txtlenght1) {
-                    setAutor(value);
+                    setAuthor(value);
                   }
                   if (value.length == 0) {
-                    setAutorError(true);
+                    setAuthorError(true);
                   } else {
-                    setAutorError(false);
+                    setAuthorError(false);
                   }
                 }}
               />
               <FormHelperText>
-                Name of the chef 15n. Max {txtlenght1} character. {autor.length}
+                Nom du chef 15n. Max {txtlenght1} character. {author.length}
                 /{txtlenght1}
               </FormHelperText>
             </Grid>
@@ -150,7 +150,7 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
                 }}
                 defaultValue={data.year}
                 isError={false}
-                helpText="Select the academic year of the quinzaine"
+                helpText="Choisir l'année académique de la quinzaine"
               />
             </Grid>
 
@@ -163,7 +163,7 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
                 color="error"
                 style={{ zIndex: 0 }}
               >
-                {success ? "Close" : "Cancel"}
+                {success ? "Fermer" : "Annuler"}
               </LoadingButton>
             </Grid>
             {!success && (
@@ -175,7 +175,7 @@ export default function QuinzaineEdit({ data, close }: Edit15nProps) {
                   onClick={handleEdit15n}
                   loading={loading}
                 >
-                  Update 15n
+                  Mettre à jour
                 </LoadingButton>
               </Grid>
             )}

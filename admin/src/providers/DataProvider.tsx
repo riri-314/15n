@@ -13,16 +13,15 @@ interface DataContextValue {
   publicData: Map<string, any> | null;
   privateData: Map<string, any> | null;
   quinzaineData: Map<string, any> | null;
+  //  fetchTest: Map<string, any> | null;
   refetchPublicData: (id?: number | null) => void;
   refetchPrivateData: (id?: number | null) => Promise<Map<string, any>>;
-  refetchQuinzaineData: (
-    update?: boolean | undefined,
-    id?: number | null
-  ) => Promise<Map<string, any>>;
+  refetchQuinzaineData: (id?: number | null) => Promise<Map<string, any>>;
   loadingPrivate: boolean;
   loadingPublic: boolean;
   loadingQuinzaine: boolean;
-  fetchedTimePrivatePublic: number;
+  fetchedTimePublic: number;
+  fetchedTimePrivate: number;
   fetchedTimeQuinzaine: number;
 }
 
@@ -35,9 +34,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [loadingPrivate, setLoadingPrivate] = useState<boolean>(false);
   const [loadingPublic, setLoadingPublic] = useState<boolean>(false);
   const [loadingQuinzaine, setLoadingQuinzaine] = useState<boolean>(false);
-  const [fetchedTimePrivatePublic, setFetchedTimePrivatePublic] =
-    useState<number>(0);
+  const [fetchedTimePublic, setFetchedTimePublic] = useState<number>(0);
+  const [fetchedTimePrivate, setFetchedTimePrivate] = useState<number>(0);
   const [fetchedTimeQuinzaine, setFetchedTimeQuinzaine] = useState<number>(0);
+
+  // When accessing stock/carte fetch a doc and if the modified date is biger than the local fetch time, refetch. Dont refetch otherwise.
 
   const fetchPublicData = async (
     id: number | null = null
@@ -62,33 +63,39 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
       if (!docs.empty) {
         let edition: Number = Number.MIN_VALUE;
-        //let articlesMap = new Map();
 
         docs.forEach((doc) => {
           const docData = doc.data();
-          // console.log("docData", docData);
           // discard the doc if it has a lower edition number
           if (docData.edition > edition) {
             edition = docData.edition;
+            const tag = docData.tag;
+            const type = docData.type;
             articlesMap = new Map(Object.entries(docData));
             // i have to make a new map for the articles
             articlesMap.set("articles", new Map());
             // add the articles to the new map
-            Object.entries(docData.articles).forEach(([barcode, article]) => {
-              articlesMap.get("articles").set(barcode, article);
-            });
-          } else if (docData.edition === edition) {
-            // merge the articles if the edition number is the same
-            Object.entries(docData.articles).forEach(([barcode, article]) => {
-              articlesMap.get("articles").set(barcode, article);
-            });
+            Object.entries(docData.articles).forEach(
+              ([articleId, article]: [any, any]) => {
+                // modifie article object to translate tags
+                const typeId = article.type;
+                article.type = type[typeId];
+                let arr: any[] = [];
+                article.tag.forEach((tagId: any) => {
+                  arr.push(tag[tagId]);
+                });
+                article.tag = arr;
+                articlesMap.get("articles").set(articleId, article);
+              }
+            );
           }
         });
-        // remove the count and num entry if they exist
-        articlesMap.delete("article_count");
-        articlesMap.delete("num");
         console.log("public data", articlesMap);
-        setFetchedTimePrivatePublic(Date.now());
+        // store the public data in local storage. This is the only data that is stored in local storage; Really needed? Yes
+        // Needed when going from carte to scanner when offline.
+
+        // scanner listen to the public doc. When public doc is updated it check if someone is scanning. If not scanning it refresh. If scanning it send notification
+        setFetchedTimePublic(Date.now());
         setPublicData(articlesMap);
         setLoadingPublic(false);
         return articlesMap;
@@ -124,178 +131,140 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       // Access the id field from the articlesMap
       if (fetchedData.size > 0) {
         const edition = fetchedData.get("edition");
-        console.log("Edition:", edition);
+        console.log("Current edition:", edition);
         const privateArticlesRef = collection(
           db,
           "Private",
           String(edition),
           "articles"
         );
-        const private15nRef = collection(db, "Private");
+        //const private15nRef = collection(db, "Private");
 
         // get the docs set to active
         try {
           const docs = await getDocs(privateArticlesRef);
-          const docs15n = await getDocs(private15nRef);
-          if (!docs.empty && !docs15n.empty) {
+          //const docs15n = await getDocs(private15nRef);
+          if (!docs.empty) {
             const articles = new Map(fetchedData.get("articles")); // deep copies the articles map
 
             for (const doc of docs.docs) {
               const docData = doc.data();
+              const articleId = doc.id;
               //Start New
-              const articlesT: Record<string, any> = docData.articles;
-              for (const [articleId, articleData] of Object.entries(
-                articlesT
-              )) {
-                let articleObject = fetchedData.get("articles").get(articleId);
-                articleObject = { ...articleObject, ...articleData };
-                articles.set(articleId, articleObject);
-              }
+
+              let articleObject = fetchedData.get("articles").get(articleId);
+              articleObject = { ...articleObject, ...docData };
+              articles.set(articleId, articleObject);
+
               //End New
             }
             fetchedData.set("articles", articles); // add new article map to the fetchedData
             // put the 15n data in a new map
-            fetchedData.set("15n", new Map());
-            for (const doc of docs15n.docs) {
-              const docId = doc.id;
-              const docData = doc.data();
-              fetchedData.get("15n").set(docId, docData);
-            }
+            //fetchedData.set("15n", new Map());
+            //for (const doc of docs15n.docs) {
+            //  const docId = doc.id;
+            //  const docData = doc.data();
+            //  fetchedData.get("15n").set(docId, docData);
+            //}
             console.log("Private data:", fetchedData);
             // set Private data to the fetchedData
             setPrivateData(fetchedData);
+            setFetchedTimePrivate(Date.now());
             setLoadingPrivate(false);
             return fetchedData;
           } else {
             console.log("No private data fetched");
+            setPrivateData(null);
             setLoadingPrivate(false);
             return dataMap;
           }
         } catch (error) {
           console.error("Error fetching private data:", error);
+          setPrivateData(null);
           setLoadingPrivate(false);
           return dataMap;
         }
       } else {
         console.log("No public data fetched in fetchPrivateData");
+        setPrivateData(null);
         setLoadingPrivate(false);
         return dataMap;
       }
     } catch (error) {
       console.error("Error fetching data:", error);
+      setPrivateData(null);
       setLoadingPrivate(false);
       return dataMap;
     }
   };
 
   const fetchQuinzaineData = async (
-    update: boolean | undefined,
     id: number | null = null
   ): Promise<Map<string, any>> => {
     setLoadingQuinzaine(true);
-    //await new Promise((resolve) => setTimeout(resolve, 6000));
-    const publicRef = collection(db, "Public");
-    const privateRef = collection(db, "Private");
-    let quinzaineMap = new Map();
-    quinzaineMap.set("15n", new Map());
-    let active;
-    let articles: Record<string, any> = {};
     try {
-      //const fetchedData = await fetchPublicData();
-      let fetchedData;
+      let fetchedData = null;
+      const publicRef = collection(db, "Public");
       if (id) {
-        fetchedData = await fetchPublicData(id);
+        // fetch private data with id
+        fetchedData = await fetchPrivateData(id);
+        // fetch default 15n id
+        const doc = await getDocs(
+          query(publicRef, where("active", "==", true))
+        );
+        if (!doc.empty) {
+          const docData = doc.docs[0].data();
+          fetchedData.set("defaultEdition", Number(docData.edition)); //the edition that will load by default
+          fetchedData.set("currentEdition", Number(id)); // the editiont that is currently loaded
+        } else {
+          console.log("No active quinzaine found");
+          setQuinzaineData(null);
+          setLoadingQuinzaine(false);
+          return new Map();
+        }
       } else {
-        fetchedData = await fetchPublicData();
+        fetchedData = await fetchPrivateData();
+        fetchedData.set("defaultEdition", Number(fetchedData.get("edition")));
+        fetchedData.set("currentEdition", Number(fetchedData.get("edition")));
       }
-      const currentEdition = Number(fetchedData.get("edition"));
-      const publicDocs = await getDocs(publicRef);
-      const privateDocs = await getDocs(privateRef);
-      let maxEdition: Number = Number.MIN_VALUE;
-
-      if (!publicDocs.empty && !privateDocs.empty) {
-        for (const doc of publicDocs.docs) {
+      // get 15s data
+      const quinznRef = collection(db, "Quinzaines");
+      const qnzDocs = await getDocs(quinznRef);
+      // console.log("Quinzaines data DEBUG:", qnzDocs);
+      if (!qnzDocs.empty) {
+        let quinzaines = new Map();
+        let maxEdition: Number = Number.MIN_VALUE;
+        qnzDocs.forEach((doc) => {
           const docData = doc.data();
-          const qnzId = Number(docData.edition);
+          // console.log("Quinzaines data DEBUG:", docData);
+          const qnzId = Number(doc.id);
+          quinzaines.set(qnzId, docData);
           if (qnzId > maxEdition.valueOf()) {
             maxEdition = qnzId;
-            articles = { ...docData.articles };
-          } else if (qnzId == maxEdition.valueOf()) {
-            articles = { ...articles, ...docData.articles };
           }
-          if (docData.active) {
-            active = qnzId;
-          }
-          quinzaineMap.get("15n").set(qnzId, docData);
-          if (qnzId === currentEdition) {
-            quinzaineMap.get("15n").get(qnzId).current = true;
-            quinzaineMap.set("current", qnzId); //redondent but easyer to access
-          } else {
-            quinzaineMap.get("15n").get(qnzId).current = false;
-          }
-        }
-        // add 15n private data
-        // get all docs inside private. Link doc.id to the map fields
-        for (const doc of privateDocs.docs) {
-          const docData = doc.data();
-          let qnznData = quinzaineMap.get("15n").get(Number(doc.id));
-          if (qnznData) {
-            quinzaineMap
-              .get("15n")
-              .set(Number(doc.id), { ...qnznData, ...docData });
-          } else {
-            quinzaineMap.get("15n").set(Number(doc.id), docData);
-          }
-        }
-
-        // should get the 15n with the biggest id ?
-
-        //START USELESS ??
-        const privateArticleRef = collection(
-          db,
-          "Private",
-          String(maxEdition),
-          "articles"
-        );
-        const snapchot = await getDocs(privateArticleRef);
-        if (!snapchot.empty) {
-          snapchot.forEach((document) => {
-            const docData = document.data();
-            const articlesT: Record<string, any> = docData.articles;
-            for (const [articleId, articleData] of Object.entries(articlesT)) {
-              let articleObject = articles[articleId];
-              articleObject = { ...articleObject, ...articleData };
-              articles[articleId] = articleObject;
-            }
-          });
-        } else {
-          console.log("No private data found for active quinzaine");
-          setLoadingQuinzaine(false);
-          return quinzaineMap;
-        }
-        quinzaineMap.get("15n").get(maxEdition).articles = articles; // all privates articles
-        //END USELESS ??
-
-        quinzaineMap.set("active", active); // active quinzaine
-        quinzaineMap.set("maxId", maxEdition); // the biggest qnzn id
-        console.log("Quinzaine data:", quinzaineMap);
-        if (update === false) {
-          return quinzaineMap;
-        } else {
-          setQuinzaineData(quinzaineMap);
-          setFetchedTimeQuinzaine(Date.now());
-          setLoadingQuinzaine(false);
-          return quinzaineMap;
-        }
+        });
+        // change
+        // console.log("Quinzaines data:", quinzaines);
+        fetchedData.set("15n", quinzaines);
+        // set the max number 15n
+        fetchedData.set("maxEdition", Number(maxEdition));
+        // we need the default active quinzaine
+        console.log("Quinzaine data:", fetchedData);
+        setQuinzaineData(fetchedData);
+        setFetchedTimeQuinzaine(Date.now());
+        setLoadingQuinzaine(false);
+        return fetchedData;
       } else {
         console.log("No quinzaine data fetched");
+        setQuinzaineData(null);
         setLoadingQuinzaine(false);
-        return quinzaineMap;
+        return new Map();
       }
     } catch (error) {
-      console.log("Error fetching quinziane data:", error);
+      console.log("Error fetching quinzaine data:", error);
+      setQuinzaineData(null);
       setLoadingQuinzaine(false);
-      return quinzaineMap;
+      return new Map();
     }
   };
 
@@ -331,10 +300,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   };
 
   const refetchQuinzaineData = async (
-    update: boolean | undefined,
     id: number | null = null
   ): Promise<Map<string, any>> => {
-    return fetchQuinzaineData(update, id); // Function to refetch data
+    console.log("Refetching quinzaine data");
+    return fetchQuinzaineData(id); // Function to refetch data
   };
 
   return (
@@ -349,7 +318,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         loadingPrivate,
         loadingPublic,
         loadingQuinzaine,
-        fetchedTimePrivatePublic,
+        fetchedTimePublic,
+        fetchedTimePrivate,
         fetchedTimeQuinzaine,
       }}
     >

@@ -10,21 +10,86 @@ import {
 import Card from "@mui/material/Card";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
-import {
-  collection,
-  doc,
-  getDocs,
-  query,
-  runTransaction,
-  serverTimestamp,
-  writeBatch,
-} from "firebase/firestore";
+import { doc, Timestamp, writeBatch } from "firebase/firestore";
 import { db } from "../../firebase_config";
 import { useData } from "../../providers/DataProvider";
+import { calculateStockByDays } from "../../components/stock/salesAndStock";
+import { changeDefaultQuinzaine } from "./QuinzainesTable";
+import LinearWithValueLabel from "../../components/LinearWithValueLabel";
+
+type Article = {
+  available: boolean;
+  stock: number;
+  creation_date: {
+    seconds: number;
+    nanoseconds: number;
+  };
+  number_in_container: number;
+  updated_time?: {
+    seconds: number;
+    nanoseconds: number;
+  } | null;
+  tag: string[];
+  format: number;
+  type: string;
+  degree: number;
+  article_type: number;
+  id_delsart: number;
+  has_barcode: boolean;
+  price_out: number;
+  barcode: string;
+  name: string;
+  edition: number;
+  articleTransactions: Record<
+    string,
+    Record<string, { sales?: number; stock?: number }>
+  >;
+  price_in: number;
+  sales: number;
+};
+
+type Articles = Record<string, Article>; // Maps article IDs to Article objects
+
+// Utility function to split an object into chunks
+function splitObjectIntoChunks<T>(
+  obj: Record<string, T>,
+  chunkSize: number
+): Record<string, T>[] {
+  const entries = Object.entries(obj); // Get entries from the object
+  const result: Record<string, T>[] = []; // To store the chunks of objects
+
+  for (let i = 0; i < entries.length; i += chunkSize) {
+    const chunk = entries.slice(i, i + chunkSize); // Slice entries into chunks
+    result.push(Object.fromEntries(chunk)); // Convert each chunk back into an object and store it
+  }
+
+  return result; // Return the array of chunked objects
+}
 
 function nextYear(year: string) {
-  const [_startYear, endYear] = year.split("-");
-  return `${Number(endYear)}-${Number(endYear) + 1}`;
+  try {
+    const [_startYear, endYear] = year.split("-");
+    return `${Number(endYear)}-${Number(endYear) + 1}`;
+  } catch (error) {
+    return "1111-2222";
+  }
+}
+
+type ModifiedArticle = Omit<Article, 'articleTransactions' | 'price_in' | 'sales' | 'stock'>;
+
+// Function to create a new object without specific fields
+function removeFieldsFromArticles(articles: Articles): Record<string, ModifiedArticle> {
+  const modifiedArticles: Record<string, ModifiedArticle> = {};
+
+  Object.entries(articles).forEach(([articleId, articleData]) => {
+    // Create a copy of the article excluding certain fields
+    const { articleTransactions, price_in, sales, stock, ...rest } = articleData;
+
+    // Add the modified article to the new object
+    modifiedArticles[articleId] = rest;
+  });
+
+  return modifiedArticles;
 }
 
 export default function NewQuinzaine() {
@@ -36,6 +101,7 @@ export default function NewQuinzaine() {
     "error"
   );
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   const txtlenght1 = 15;
 
@@ -45,7 +111,7 @@ export default function NewQuinzaine() {
     if (error) {
       timer = setTimeout(() => {
         setError("");
-      }, 5000); // Set the timer to hide the error after 5 seconds
+      }, 50000); // Set the timer to hide the error after 5 seconds
     }
 
     return () => {
@@ -76,180 +142,135 @@ export default function NewQuinzaine() {
       setLoading(false);
       return;
     }
-    const oldMaxId = quinzaineData?.get("maxId");
+    // check if maxEdition == currentEdition (should be okay but better double check)
     const Data = await refetchQuinzaineData(); //it get us private, 15n and public data. The "await" is necessary, dont listen to the editor, he is lying.
-    if (!Data) {
-      setError("Error fetching data. No data was written");
-      setErrorSeverity("error");
-      setLoading(false);
-      return;
-    }
-    const maxId = Data.get("maxId");
-    if (maxId !== oldMaxId) {
-      // edge case, really should not happen
+    // check if the data is recent
+    if (Data == null) {
       setError(
-        "Mismatch quinzaine ID, please reload the app to fix the error. No data was written"
+        "Erreur lors de la récupération des données. Aucune donnée n'a été écrite"
       );
       setErrorSeverity("error");
       setLoading(false);
       return;
     }
-    const articles = Data.get("15n").get(maxId).articles;
+    const maxEdition = Data.get("maxEdition");
+    const currentEdition = Data.get("currentEdition");
+    //const defaultEdition = Data.get("defaultEdition");
+
+    if (maxEdition !== currentEdition) {
+      // edge case, really should not happen
+      setError(
+        "Erreur: Impossible de créer une nouvelle quinzaine. La quinzaine actuelle n'est pas la dernière quinzaine. Aucune donnée n'a été écrite"
+      );
+      setErrorSeverity("error");
+      setLoading(false);
+      return;
+    }
+
+    const articles = Object.fromEntries(Data.get("articles"));
+
     const articlesCount = Object.keys(articles).length;
+
     if (articlesCount === 0) {
-      setError("No articles found in the last quinzaine. No data was written");
+      setError(
+        "Erreur: Aucun article trouvé dans la quinzaine actuelle. Aucune donnée n'a été écrite"
+      );
       setErrorSeverity("error");
       setLoading(false);
       return;
     }
     console.log("articles: ", articles);
 
-    const groupedArticles: Record<string, any> = {};
-    const groupedArticles2: Record<string, any> = {};
-    const groupedArticles3: Record<string, any> = {};
+    // TODO
+    // 1. Create new 15n document
+    // 2. Create the public document (easy), type, tag, edition, active, articles, average_stock_update_time
+    // 3. Create the new private documents. Calculate new initStock
 
-    let i = 0;
-    const keys = Object.keys(articles);
-    keys.forEach((key) => {
-      const groupIndex = Math.floor(i / 1000);
-      if (!groupedArticles3[groupIndex]) {
-        groupedArticles3[groupIndex] = {
-          article_count: 0,
-          articles: {},
-          active: true,
-          edition: maxId + 1,
-          data_saver: false,
-        };
-      }
-      const article = articles[key];
-      delete article.added_stock;
-      delete article.sales;
-      delete article.transactions;
-      delete article.updated_on;
-      delete article.price_in;
-      delete article.stock_init;
-      delete article.stock;
-      article.new = false;
-      groupedArticles3[groupIndex].articles[key] = article; // need to remove some data from the articles
-      groupedArticles3[groupIndex].article_count = (i % 1000) + 1;
-      const privDoc = articles[key].privDoc;
-      if (!groupedArticles[privDoc]) {
-        groupedArticles[privDoc] = {};
-      }
-      groupedArticles[privDoc][key] = articles[key];
-      i += 1;
-    });
+    const new15nDoc = {
+      author: autor,
+      creation_date: Timestamp.now(),
+      edition: maxEdition + 1,
+      transactions: {},
+      year: nextYear(Data.get("15n").get(maxEdition).year),
+    };
 
-    const groupedKeys = Object.keys(groupedArticles);
-    groupedKeys.forEach((key, index) => {
-      const groupIndex = Math.floor(index / 100);
-      if (!groupedArticles2[groupIndex]) {
-        groupedArticles2[groupIndex] = {};
-      }
-      groupedArticles2[groupIndex][key] = groupedArticles[key];
-    });
+    const publicArticles = removeFieldsFromArticles(articles);
 
-    console.log(groupedArticles2);
-    console.log(groupedArticles3);
-    //setLoading(false);
-    //return;
-
-    // a public articles doc can store 1000 articles, so we need to split the articles in groups of 1000
-    // we need to create new public doc(s) and update add the articles
+    const newPublicDoc = {
+      active: true,
+      edition: maxEdition + 1,
+      articles: publicArticles, //Errors with tag and type. Need to fix, todo
+      average_stock_update_time: 0,
+      tag: Data.get("tag"),
+      type: Data.get("type"),
+    };
+    const newEdition = maxEdition + 1;
 
     try {
-      for (let i = 0; i < Object.keys(groupedArticles2).length; i += 1) {
-        const batch = writeBatch(db);
-        if (i === 0) {
-          const new15n = {
-            author: autor,
-            creation_date: serverTimestamp(),
-            year: nextYear(Data.get("15n").get(maxId).year),
-            transactions: {},
-          };
-          console.log("new15n: ", new15n);
-          batch.set(doc(db, "Private", String(maxId + 1)), new15n);
-        }
-        const batchArticles = groupedArticles2[i];
-        console.log("batch: ", i, " groupedArticles2: ", groupedArticles2[i]);
+      const chunkedArticles = splitObjectIntoChunks(articles, 150);
+      console.log("chunkedArticles: ", chunkedArticles);
 
-        for (const key in batchArticles) {
-          // key is the priv doc id
-          let articleCount = 0;
-          let articles: Record<string, any> = {};
-          for (const articleId in batchArticles[key]) {
-            //article is the article object
-            const article = batchArticles[key][articleId];
-            const newArticle = {
-              added_stock: 0,
-              sales: 0,
-              stock: article.stock || 0,
-              stock_init: article.stock || 0,
-              price_in: article.price_in || 0,
-              updated_on: article.updated_on || serverTimestamp(),
-              transactions: {},
-            };
-            articleCount += 1;
-            console.log("newArticle: ", newArticle);
-            articles[articleId] = newArticle;
+      let i = 0;
+
+      chunkedArticles.forEach(async (chunk, chunkIndex) => {
+        console.log(`Chunk ${chunkIndex + 1}:`);
+        const batch = writeBatch(db);
+
+        // Iterate over each article in the chunk
+        Object.entries(chunk).forEach(([articleId, articleData]) => {
+          //console.log(`Article ID: ${articleId}`);
+          //console.log("Article Data:", articleData);
+          const article = articleData;
+          let stockFinal = 0;
+          try {
+            const stockAndSales = calculateStockByDays(
+              article.articleTransactions,
+              null,
+              article.stock,
+              article.number_in_container
+            );
+            stockFinal = stockAndSales[3];
+          } catch (error) {
+            console.log("Error calculating stock: ", error);
           }
-          batch.set(
-            doc(db, "Private", String(maxId + 1), "articles", String(key)),
-            {
-              article_count: articleCount,
-              articles: articles,
-            }
+          const newArticleRef = doc(
+            db,
+            `Private/${newEdition}/articles/${articleId}`
           );
-        }
-        await batch.commit();
-      }
-
-      for (let i = 0; i < Object.keys(groupedArticles3).length; i += 1) {
-        const batch = writeBatch(db);
-        let ref = doc(collection(db, "Public"));
-        console.log("batch: ", i, " groupedArticles3: ", groupedArticles3[i]);
-        batch.set(ref, groupedArticles3[i]);
-        await batch.commit();
-      }
-      // set maxId + 1 as active quinzaine
-      const collectionRef = collection(db, "Public");
-
-      // Create a query to get all documents in the collection
-      const q = query(collectionRef);
-
-      // Get all documents matching the query
-      const querySnapshot = await getDocs(q);
-
-      // Run a transaction to ensure atomicity
-      await runTransaction(db, async (transaction) => {
-        querySnapshot.forEach((document) => {
-          const docData = document.data();
-          const docRef = doc(db, "Public", document.id);
-
-          if (docData.edition === Number(maxId + 1)) {
-            // Update the field
-            transaction.update(docRef, {
-              active: true,
-            });
-          } else {
-            // Update the field
-            transaction.update(docRef, {
-              active: false,
-            });
-          }
+          batch.set(newArticleRef, {
+            price_in: article.price_in || 0,
+            initStock: stockFinal || 0, //todo
+            sales: 0,
+            stock: stockFinal || 0, //same as initStock
+            edition: newEdition,
+            articleTransactions: {},
+          });
         });
+        if (i === 0) {
+          const new15nRef = doc(db, `Quinzaines/${newEdition}`);
+          batch.set(new15nRef, new15nDoc);
+
+          const newPublicRef = doc(db, `Public/${newEdition}`);
+          batch.set(newPublicRef, newPublicDoc);
+        }
+
+        await batch.commit();
+        i++;
+        setLoadingProgress((i / chunkedArticles.length) * 100);
+        console.log("Batch commit ", i);
       });
-      // await refresh data to latest version
+
+      await changeDefaultQuinzaine(newEdition);
       await refetchQuinzaineData();
       setAutor("");
-      setError("15n updated successfully");
       setErrorSeverity("success");
+      setError("La quinzaine a été créée avec succès");
       setLoading(false);
       return;
     } catch (error) {
-      setError("Error updating documents: " + error);
       setErrorSeverity("error");
-      setLoading(false);
+      setError("Erreur lors de la création de la quinzaine: " + error);
+      setLoading(false); // error handeling is not working, need to fix, todo
       return;
     }
 
@@ -271,7 +292,7 @@ export default function NewQuinzaine() {
       >
         <CardContent>
           <Typography variant="h5" sx={{ mb: 1 }}>
-            Create the {quinzaineData?.get("maxId") + 1}th quinzaine
+            Créer la {quinzaineData?.get("maxEdition") + 1}éme quinzaine
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
@@ -293,8 +314,8 @@ export default function NewQuinzaine() {
                 }}
               />
               <FormHelperText>
-                Name of the chef 15n. Max {txtlenght1} character. {autor.length}
-                /{txtlenght1}
+                Nom du chef 15n. Max {txtlenght1} characters. {autor.length}/
+                {txtlenght1}
               </FormHelperText>
             </Grid>
 
@@ -307,7 +328,7 @@ export default function NewQuinzaine() {
                 loading={loading}
                 sx={{ height: "70%" }}
               >
-                Create 15n
+                Créer la {quinzaineData?.get("maxEdition") + 1}éme quinzaine
               </LoadingButton>
             </Grid>
           </Grid>
@@ -322,8 +343,11 @@ export default function NewQuinzaine() {
               {error}
             </Alert>
           )}
+          {loading && <LinearWithValueLabel progress={loadingProgress} />}
         </CardContent>
       </Card>
     </>
   );
 }
+
+//FirebaseError: [code=invalid-argument]: Function WriteBatch.set() called with invalid data. Unsupported field value: a custom Map object (found in field articles in document Public/91)

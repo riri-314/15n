@@ -3,6 +3,7 @@ from firebase_admin import credentials, firestore
 from google.cloud.firestore_v1._helpers import DatetimeWithNanoseconds
 from datetime import datetime
 
+
 # Initialize Firebase admin SDK with credentials
 cred = credentials.Certificate("quinzaine-3fb2e-firebase-adminsdk-b0oop-3ac37556df.json")
 firebase_admin.initialize_app(cred)
@@ -38,9 +39,7 @@ def create_article(article_id, article_data):
 
 
 def migrate_articles():
-    """
-    Migrate articles from Firestore to a local JSON file.
-    """
+
     articles_ref = db.collection('articles')
     articles = articles_ref.stream()
     i = 0
@@ -48,18 +47,17 @@ def migrate_articles():
     
     for article in articles:
         i += 1
-        if i > 11:
-            break
+        #if i > 2:
+        #    break
         articleData = article.to_dict()
         articleId = article.id
-        hasBarcode = articleData.get('hasbarcode', False)
-        creationDate = articleData.get('creation_date', None)
-        idDelsart = articleData.get('id_delsart', None)
-        updatedTime = articleData.get('updated_time', None)
+        hasBarcode = articleData.get('hasbarcode', False) #pub
+        creationDate = articleData.get('creation_date', None) #pub
+        idDelsart = articleData.get('id_delsart', None) #pub
+        updatedTime = articleData.get('updated_time', None) #pub
         print(f"Migrating article: {articleId}")
-        migrateData = {'has_barcode':hasBarcode, 'creation_date':creationDate, 'id_delsart':idDelsart, 'updated_time':updatedTime}
-        article_ref = db.collection('Private').document(articleId)
-        article_ref.set(migrateData)
+        #migrateData = {'has_barcode':hasBarcode, 'creation_date':creationDate, 'id_delsart':idDelsart, 'updated_time':updatedTime}
+
         # get the docs in info collection
         info_ref = db.collection('articles').document(articleId).collection('infos')
         # get the docs in info collection
@@ -67,9 +65,21 @@ def migrate_articles():
         for doc in info:
             docData = doc.to_dict()
             docId = doc.id
+            
+            article_ref = db.collection('Public').document(docId)
+            
+            # Update the nested field 'articles.articleId'
+            nested_field_update = {
+                f'articles.{articleId}.has_barcode': hasBarcode,
+                f'articles.{articleId}.creation_date': creationDate,
+                f'articles.{articleId}.id_delsart': idDelsart,
+                f'articles.{articleId}.updated_time': updatedTime
+            }
+            article_ref.update(nested_field_update)
+            
             print(f"Migrating info: {docId}")
             infoData = {'articleTransactions':docData.get('articleTransactions', None), 'edition':int(docId), 'price_in':docData.get('price_in', 0), 'sales':docData.get('sales', 0), 'stock':docData.get('stock', 0)}
-            info_ref = db.collection('Private').document(articleId).collection('editions').document(docId)
+            info_ref = db.collection('Private').document(str(docId)).collection('articles').document(articleId)
             info_ref.set(infoData)
         print(f"Article {articleId} created/updated successfully. {i}")
         #break
@@ -126,8 +136,11 @@ def migrate_public():
             
             print(f"Migrating article: {articleId}, {articleData.get('name', None)}")
             #print(f"Migrating article: {articleId}, {article.get('name', None)}")
-        print(articles)    
-        publicData = {'active': False, 'articles':articles, 'average_stock_update_time':None, 'edition': int(publicId)}
+        print(articles)
+        active = False
+        if int(publicId) == 90:
+            active = True    
+        publicData = {'active': active, 'articles':articles, 'average_stock_update_time':None, 'edition': int(publicId)}
         public_ref = db.collection('Public').document(publicId)
         public_ref.set(publicData)
         
@@ -151,7 +164,17 @@ def migrate_15n_data():
         #qnzNewRef = db.collection('Quinzaines').document(str(edition))
         #qnzNewRef.set(newData)
 
-migrate_15n_data()
+
+#migrate_15n_data()
+
+
+def add_tag_adn_type():
+    publicRef = db.collection('Public')
+    for x in [88,89,90]:
+        publicDocRef = publicRef.document(str(x))
+        publicDocRef.update({'tag': {'1': 'New', '2':'Trappiste', '3': 'Gluten Free', '4':'Triple'}, 'type': {'1': 'Ambrée', '2':'Blanche', '3':'Blonde', '4':'Brune', '5':'Fruitée', '6':'Stout', '0':'None'}})
+
+#add_tag_adn_type()
 
 #PUBLIC
 #add beer type in public

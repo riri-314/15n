@@ -20,7 +20,7 @@ export default function Refresh({ mode }: RefreshProps) {
     loadingPrivate,
     loadingPublic,
     loadingQuinzaine,
-    fetchedTimePrivatePublic,
+    fetchedTimePublic,
     fetchedTimeQuinzaine,
   } = useData();
   const [refreshTime, setRefreshTime] = useState("");
@@ -32,12 +32,12 @@ export default function Refresh({ mode }: RefreshProps) {
 
   if (mode === "public") {
     data = publicData;
-    fetchedTime = fetchedTimePrivatePublic;
+    fetchedTime = fetchedTimePublic;
     loading = loadingPublic;
     refetchData = refetchPublicData;
   } else if (mode === "private") {
     data = privateData;
-    fetchedTime = fetchedTimePrivatePublic;
+    fetchedTime = fetchedTimePublic;
     loading = loadingPrivate;
     refetchData = refetchPrivateData;
   } else if (mode === "quinzaine") {

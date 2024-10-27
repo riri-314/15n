@@ -18,7 +18,6 @@ import {
   getDocs,
   query,
   runTransaction,
-  where,
 } from "firebase/firestore";
 import { db } from "../../firebase_config";
 
@@ -77,6 +76,47 @@ const StripedDataGrid = styled(DataGrid)(({ theme }) => ({
   },
 }));
 
+
+export async function changeDefaultQuinzaine(id: number) {
+  console.log("Changing default quinzaine: ", id);
+  try {
+    // Reference to your collection
+    const collectionRef = collection(db, "Public");
+
+    // Create a query to get all documents in the collection
+    const q = query(collectionRef);
+
+    // Get all documents matching the query
+    const querySnapshot = await getDocs(q);
+
+    // Run a transaction to ensure atomicity
+    await runTransaction(db, async (transaction) => {
+      querySnapshot.forEach((document) => {
+        const docData = document.data();
+        const docRef = doc(db, "Public", document.id);
+
+        if (docData.edition === Number(id)) {
+          // Update the field
+          transaction.update(docRef, {
+            active: true,
+          });
+        } else {
+          // Update the field
+          transaction.update(docRef, {
+            active: false,
+          });
+        }
+      });
+    });
+    console.log("Default quinzaine changed successfully");
+    return { success: true, message: id+"éme quinzaine mise par defaut avec succés" };
+  } catch (error) {
+    console.error("Error changing default quinzaine: ", error);
+    return { success: false, message: "Merde, erreur: "+ error }; 
+  }
+}
+
+
 interface QuinzaineTableProps {
   // Props type definition
   handleOpenModal: (data: any) => void;
@@ -86,9 +126,8 @@ export default function QuinzainesTable({
   handleOpenModal,
 }: QuinzaineTableProps) {
   const { quinzaineData, refetchQuinzaineData } = useData();
-  const [loadingActive, setLoadingActive] = useState(false);
+  const [loadingDefault, setLoadingDefault] = useState(false);
   const [loadingCurrent, setLoadingCurrent] = useState(false);
-  const [loadingDataSaver, setLoadingDataSaver] = useState(false);
   const [error, setError] = useState("");
   const [errorSeverity, setErrorSeverity] = useState<AlertColor | undefined>(
     "error"
@@ -110,10 +149,10 @@ export default function QuinzainesTable({
 
   async function setCurrent(id: number) {
     setLoadingCurrent(true);
-    await refetchQuinzaineData(true, id);
+    await refetchQuinzaineData(id);
     setLoadingCurrent(false);
     setErrorSeverity("success");
-    setError(id + "th quinzaine successfully set as current!");
+    setError(id + "éme quinzaine chargée avec succès!");
   }
 
   function extractObjectsFromQuinzaineData(): Array<{
@@ -135,92 +174,26 @@ export default function QuinzainesTable({
 
   //console.log("Qnzn test: ",extractObjectsFromQuinzaineData());
 
-  async function changeActiveQuinzaine(id: number) {
-    setLoadingActive(true);
+  async function handleChangeDefaultQuinzaine(id: number) {
+    setLoadingDefault(true);
     setLoadingCurrent(true);
     setError("");
     setErrorSeverity("error");
 
-    try {
-      // Reference to your collection
-      const collectionRef = collection(db, "Public");
+    const { success, message } = await changeDefaultQuinzaine(id);
 
-      // Create a query to get all documents in the collection
-      const q = query(collectionRef);
-
-      // Get all documents matching the query
-      const querySnapshot = await getDocs(q);
-
-      // Run a transaction to ensure atomicity
-      await runTransaction(db, async (transaction) => {
-        querySnapshot.forEach((document) => {
-          const docData = document.data();
-          const docRef = doc(db, "Public", document.id);
-
-
-          if (docData.edition === Number(id)) {
-            // Update the field
-            transaction.update(docRef, {
-              active: true,
-            });
-          } else {
-            // Update the field
-            transaction.update(docRef, {
-              active: false,
-            });
-          }
-        });
-      });
-
-      console.log("Documents updated successfully!");
+    if (success) {
       refetchQuinzaineData();
-      setLoadingActive(false);
+      setLoadingDefault(false);
       setLoadingCurrent(false);
       setErrorSeverity("success");
-      setError(id + "th quinzaine successfully set as active!");
-    } catch (error) {
-      setLoadingActive(false);
+      setError(message);
+    } else {
+      setLoadingDefault(false);
       setLoadingCurrent(false);
-      console.error("Error updating documents: ", error);
-      setError("Error updating documents");
+      setError(message);
     }
-  }
 
-  async function changeDataSaver(id: number, oldStatus: boolean) {
-    setLoadingDataSaver(true);
-    setError("");
-    setErrorSeverity("error");
-    //console.log("id: ", id, " oldStatus: ", oldStatus);
-
-    try {
-      const publicRef = collection(db, "Public");
-      const queryDocs = query(publicRef, where("edition", "==", Number(id)));
-
-      // Get all documents matching the query
-      const querySnapshot = await getDocs(queryDocs);
-
-      // Run a transaction to ensure atomicity
-      await runTransaction(db, async (transaction) => {
-        querySnapshot.forEach((document) => {
-          const docRef = doc(db, "Public", document.id);
-          transaction.update(docRef, {
-            data_saver: !oldStatus,
-          });
-        });
-      });
-      const txt = oldStatus ? "disabled" : "enabled";
-
-      console.log("Documents updated successfully!");
-      refetchQuinzaineData();
-      setLoadingDataSaver(false);
-      setErrorSeverity("success");
-      setError("Data saver " + txt + " for " + id + "th quinzaine");
-    } catch (error) {
-      setLoadingDataSaver(false);
-
-      console.error("Error updating documents: ", error);
-      setError("Error updating documents");
-    }
   }
 
   const columns: GridColDef[] = [
@@ -234,14 +207,14 @@ export default function QuinzainesTable({
         <LoadingButton
           style={{
             ...buttonStyle,
-            backgroundColor: loadingActive
+            backgroundColor: loadingCurrent
               ? undefined
-              : params.row.id == quinzaineData?.get("active")
+              : params.row.id == quinzaineData?.get("currentEdition")
               ? "green"
               : "red",
           }}
-          onClick={() => changeActiveQuinzaine(params.row.id as number)}
-          loading={loadingActive}
+          onClick={() => setCurrent(params.row.id as number)}
+          loading={loadingCurrent}
         >
           {params.row.id}
           {params.row.id == quinzaineData?.get("active") ? " active" : ""}
@@ -249,8 +222,8 @@ export default function QuinzainesTable({
       ),
     },
     {
-      field: "current",
-      headerName: "Current",
+      field: "default",
+      headerName: "Par defaut",
       flex: 1,
       editable: false,
       minWidth: 140,
@@ -258,22 +231,22 @@ export default function QuinzainesTable({
         <LoadingButton
           style={{
             ...buttonStyle,
-            backgroundColor: loadingCurrent
+            backgroundColor: loadingDefault
               ? undefined
-              : params.row.current
+              : params.row.id == quinzaineData?.get("defaultEdition")
               ? "green"
               : "red",
           }}
-          onClick={() => setCurrent(params.row.id as number)}
-          loading={loadingCurrent}
+          onClick={() => handleChangeDefaultQuinzaine(params.row.id as number)}
+          loading={loadingDefault}
         >
-          {params.row.current ? "Current" : "Not current"}
+          {params.row.id == quinzaineData?.get("defaultEdition") ? "Par defaut" : "Non par defaut"}
         </LoadingButton>
       ),
     },
     {
       field: "author",
-      headerName: "Autor",
+      headerName: "Author",
       flex: 1,
       editable: false,
       minWidth: 100,
@@ -298,29 +271,6 @@ export default function QuinzainesTable({
         }
         return formatDate(value);
       },
-    },
-    {
-      field: "data_saver",
-      headerName: "Data saver",
-      flex: 1,
-      editable: false,
-      minWidth: 110,
-      renderCell: (params: GridCellParams) => (
-        <LoadingButton
-          style={{
-            ...buttonStyle,
-            backgroundColor: loadingDataSaver
-              ? undefined
-              : params.row.data_saver
-              ? "green"
-              : "red",
-          }}
-          onClick={() => changeDataSaver(params.row.id, params.row.data_saver)}
-          loading={loadingDataSaver}
-        >
-          {params.row.data_saver ? "Enabled" : "Disabled"}
-        </LoadingButton>
-      ),
     },
     {
       field: "actions",

@@ -30,18 +30,20 @@ export default function AdminView() {
           <b>Soyez prudent, ne soyez pas stupide.</b>
           <br />
           Tu es actuellement en train de voir les données pour la{" "}
-          {quinzaineData?.get("current")}éme quinzaine. Par défaut, vous verrez
-          les données pour la {quinzaineData?.get("active")}éme quinzaine car
-          c'est celle qui est définie par defaut.
+          {quinzaineData?.get("currentEdition")}éme quinzaine. Par défaut, vous
+          verrez les données pour la {quinzaineData?.get("defaultEdition")}éme
+          quinzaine car c'est celle qui est définie par defaut.
           <br />
           <b>Active: </b>C'est la quinzaine que vous voyez pour le moment.
           <br />
-          <b>Defaut: </b>C'est la quinzaine qui sera chargée par defaut. <b>Soyez prudent!</b>
+          <b>Defaut: </b>C'est la quinzaine qui sera chargée par defaut.{" "}
+          <b>Soyez prudent!</b>
         </Typography>
       </CardContent>
     </Card>
   );
 
+  // Let user create a new quinzaine if maxEdition == currentEdition. If not, show a message.
   const formText = (
     <Card
       sx={{ minWidth: 275, boxShadow: 0, border: 1, borderColor: "divider" }}
@@ -51,12 +53,57 @@ export default function AdminView() {
           Créer une Quinzaine
         </Typography>
         <Typography variant="body2">
-          Créer une nouvelle quinzaine. Créer la {quinzaineData?.get("maxId") + 1}éme
-          édition basée sur les données de la {quinzaineData?.get("maxId")}éme édition. Comment faire? Entrer le nom du chez 15N, cliquer sur le bouton, attendre et ne surtout par fermer la page web. Enjoy!
+          Créer une nouvelle quinzaine. Créer la{" "}
+          {quinzaineData?.get("maxEdition") + 1}éme édition basée sur les
+          données de la {quinzaineData?.get("maxEdition")}éme édition. Comment
+          faire? Entrer le nom du chez 15N, cliquer sur le bouton, attendre et
+          ne surtout par fermer la page web. Enjoy!
         </Typography>
       </CardContent>
     </Card>
   );
+
+  function displayNewQuinzaineForm() {
+    if (
+      quinzaineData?.get("maxEdition") === quinzaineData?.get("currentEdition")
+    ) {
+      return (
+        <>
+          {formText} <NewQuinzaine />
+        </>
+      );
+    } else {
+      return (
+        <Card
+          sx={{
+            minWidth: 275,
+            boxShadow: 0,
+            border: 1,
+            borderColor: "divider",
+          }}
+        >
+          <CardContent>
+            <Typography variant="h5" component="div">
+              Créer une Quinzaine
+            </Typography>
+            <Typography variant="body2">
+              Vous ne pouvez pas créer une nouvelle quinzaine pour le moment.
+              Pour créer la {quinzaineData?.get("maxEdition") + 1}éme édition
+              basée sur les données de la {quinzaineData?.get("maxEdition")}éme
+              édition, vous devez d'abord définir la{" "}
+              {quinzaineData?.get("maxEdition")}éme édition comme active.
+              <br />
+              Rappel:
+              <br />
+              <b>Active: </b>C'est la quinzaine que vous voyez pour le moment.
+              <br />
+              <b>Defaut: </b>C'est la quinzaine qui sera chargée par defaut.{" "}
+            </Typography>
+          </CardContent>
+        </Card>
+      );
+    }
+  }
 
   return (
     <>
@@ -72,8 +119,7 @@ export default function AdminView() {
             }}
           />
         </div>
-        {formText}
-        <NewQuinzaine />
+        {displayNewQuinzaineForm()}
         <div style={{ paddingTop: 3 }}></div>
       </Stack>
       <Modal
