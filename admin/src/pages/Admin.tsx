@@ -2,6 +2,8 @@ import { useData } from "../providers/DataProvider";
 import Loading from "../sections/loading/Loading";
 import { useEffect, useState } from "react";
 import AdminView from "../sections/admin/AdminView";
+import {Helmet} from 'react-helmet-async';
+
 
 // --------------------------------------
 export default function AdminPage() {
@@ -33,6 +35,13 @@ export default function AdminPage() {
     fetchData();
   }, []);
 
-  return <div style={{ width: "100%" }}>{loadComponent()}</div>;
+  return (
+    <>
+      <Helmet>
+        <title> Quinzaine | Admin </title>
+      </Helmet>
+      <div style={{ width: "100%" }}>{loadComponent()}</div>
+    </>
+  );
 }
 //       {quinzaineData && !loading ? <AdminView /> : <Loading />}

@@ -2,6 +2,7 @@ import Container from "@mui/material/Container";
 import { useData } from "../providers/DataProvider";
 import Loading from "../sections/loading/Loading";
 import { useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 
 // --------------------------------------
 export default function StatsPage() {
@@ -17,7 +18,7 @@ export default function StatsPage() {
       }
     } else {
       if (loadingPrivate) {
-        return <Loading text="Chargement en cours..."/>;
+        return <Loading text="Chargement en cours..." />;
       } else {
         return <Loading text="Erreur lors du chargement des données." />;
       }
@@ -34,9 +35,10 @@ export default function StatsPage() {
 
   return (
     <>
-      <Container maxWidth="xl">
-        {loadComponent()}
-      </Container>
+      <Helmet>
+        <title> Quinzaine | Stats </title>
+      </Helmet>
+      <Container maxWidth="xl">{loadComponent()}</Container>
     </>
   );
 }

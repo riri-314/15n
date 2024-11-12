@@ -11,6 +11,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Alert from "@mui/material/Alert";
 import Iconify from "../components/iconify/Iconify";
 import { Typography } from "@mui/material";
+import { Helmet } from "react-helmet-async";
 
 interface adminLoginProps {
   children: React.ReactNode;
@@ -79,6 +80,9 @@ export default function AdminLoginPage({ children }: adminLoginProps) {
   );
   return (
     <>
+      <Helmet>
+        <title> Quinzaine | Login </title>
+      </Helmet>
       {admin ? (
         children
       ) : (
