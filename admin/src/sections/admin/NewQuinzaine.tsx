@@ -29,9 +29,9 @@ type Article = {
     seconds: number;
     nanoseconds: number;
   } | null;
-  tag: string[];
+  tag: string[] | number[];
   format: number;
-  type: string;
+  type: string | number;
   degree: number;
   article_type: number;
   id_delsart: number;
@@ -75,21 +75,66 @@ function nextYear(year: string) {
   }
 }
 
-type ModifiedArticle = Omit<Article, 'articleTransactions' | 'price_in' | 'sales' | 'stock'>;
+type ModifiedArticle = Omit<
+  Article,
+  "articleTransactions" | "price_in" | "sales" | "stock"
+>;
 
 // Function to create a new object without specific fields
-function removeFieldsFromArticles(articles: Articles): Record<string, ModifiedArticle> {
+function removeFieldsFromArticles(
+  articles: Articles,
+  types: any,
+  tags: any
+): Record<string, ModifiedArticle> {
   const modifiedArticles: Record<string, ModifiedArticle> = {};
 
   Object.entries(articles).forEach(([articleId, articleData]) => {
     // Create a copy of the article excluding certain fields
-    const { articleTransactions, price_in, sales, stock, ...rest } = articleData;
+    const { articleTransactions, price_in, sales, stock, ...rest } =
+      articleData;
+
+    // change type in articleData
+    rest.type = formatType(types, rest.type);
+    rest.tag = formatTags(tags, rest.tag);
 
     // Add the modified article to the new object
     modifiedArticles[articleId] = rest;
   });
 
   return modifiedArticles;
+}
+
+function formatTags(obj: any, str: string[] | number[]): number[] {
+  let result: number[] = [];
+
+  // Iterate over the obj object
+  for (const key in obj) {
+    const value = obj[key];
+
+    // Check for exact match
+    if (value == str) {
+      result.push(Number(key));
+    }
+  }
+  return result;
+}
+
+function formatType(obj: any, str: string | number): number {
+  // Default key is 0 ("None")
+  let resultKey = 0;
+
+  // Iterate over the obj object
+  for (const key in obj) {
+    const value = obj[key];
+
+    // Check for exact match
+    if (value == str) {
+      return Number(key);
+    }
+  }
+
+  // If no match is found, return 0 ("None")
+  return resultKey;
 }
 
 export default function NewQuinzaine() {
@@ -194,7 +239,10 @@ export default function NewQuinzaine() {
       year: nextYear(Data.get("15n").get(maxEdition).year),
     };
 
-    const publicArticles = removeFieldsFromArticles(articles);
+    const publicArticles = removeFieldsFromArticles(articles, Data.get("type"), Data.get("tag"));
+
+    console.log("Data.get('tag'): ", Data.get("tag")); 
+    console.log("Data.get('type'): ", Data.get("type"));
 
     const newPublicDoc = {
       active: true,
@@ -202,8 +250,10 @@ export default function NewQuinzaine() {
       articles: publicArticles, //Errors with tag and type. Need to fix, todo
       average_stock_update_time: 0,
       tag: Data.get("tag"),
-      type: Data.get("type"),
+      type:Data.get("type"),
+    
     };
+    console.log("newPublicDoc: ", newPublicDoc);
     const newEdition = maxEdition + 1;
 
     try {
@@ -212,7 +262,7 @@ export default function NewQuinzaine() {
 
       let i = 0;
 
-      chunkedArticles.forEach(async (chunk, chunkIndex) => {
+      for (const [chunkIndex, chunk] of chunkedArticles.entries()) {
         console.log(`Chunk ${chunkIndex + 1}:`);
         const batch = writeBatch(db);
 
@@ -258,10 +308,12 @@ export default function NewQuinzaine() {
         i++;
         setLoadingProgress((i / chunkedArticles.length) * 100);
         console.log("Batch commit ", i);
-      });
-
+      }
+      console.log("All batches committed");
       await changeDefaultQuinzaine(newEdition);
+      console.log("Default quinzaine changed successfully");
       await refetchQuinzaineData();
+      console.log("Data refetched successfully");
       setAutor("");
       setErrorSeverity("success");
       setError("La quinzaine a été créée avec succès");
@@ -270,6 +322,8 @@ export default function NewQuinzaine() {
     } catch (error) {
       setErrorSeverity("error");
       setError("Erreur lors de la création de la quinzaine: " + error);
+      console.log("Error creating new quinzaine: ", error);
+      setLoadingProgress(0);
       setLoading(false); // error handeling is not working, need to fix, todo
       return;
     }
