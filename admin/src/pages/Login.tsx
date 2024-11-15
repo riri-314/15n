@@ -6,7 +6,7 @@ import LoginView from "../sections/login/LoginView";
 export default function LoginPage() {
   return (
     <>
-          <Helmet>
+      <Helmet>
         <title> Quinzaine | Login </title>
       </Helmet>
       <LoginView />

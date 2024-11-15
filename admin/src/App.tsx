@@ -9,7 +9,7 @@ function App() {
     const { user, loading } = useAuth();
 
     if (loading) {
-      return <Loading />;
+      return <Loading />; // loading if no public data (listener?)
     }
 
     if (!user) {

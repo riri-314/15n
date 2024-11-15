@@ -12,13 +12,13 @@ interface NavBarProps {
 
 function NavBar({ children }: NavBarProps) {
   const [isNavVisible, setIsNavVisible] = useState(false);
-  const [version, setVersion] = useState("");
+  const [version, setVersion] = useState("Chargement");
   const auth = getAuth();
-  const { publicData } = useData();
+  const { publicDataListener } = useData();
 
   useEffect(() => {
-    setVersion(publicData?.get("edition") || "");
-  }, [publicData]);
+    setVersion(publicDataListener?.edition || "");
+  }, [publicDataListener]);
 
   async function logOut() {
     try {

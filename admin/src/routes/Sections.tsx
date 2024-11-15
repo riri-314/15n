@@ -4,6 +4,7 @@ import { Outlet, Navigate, useRoutes } from "react-router-dom";
 import LoginPage from "../pages/Login.tsx";
 import NavBar from "../sections/navbar/NavBar.tsx";
 import LoadingPage from "../pages/Loading.tsx";
+import Scanner from "../pages/Scanner.tsx";
 
 export const AdminPage = lazy(() => import("../pages/Admin.tsx"));
 export const AdminLoginPage = lazy(() => import("../pages/AdminLogin.tsx"));
@@ -24,7 +25,7 @@ export default function Router() {
         </NavBar>
       ),
       children: [
-        { element: <WipPage />, index: true }, //scanner
+        { element: <Scanner />, index: true }, //scanner
         {
           path: "stats",
           element: (

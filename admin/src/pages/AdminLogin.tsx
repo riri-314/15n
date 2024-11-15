@@ -33,7 +33,7 @@ export default function AdminLoginPage({ children }: adminLoginProps) {
       setAdmin(true);
       setLoading(false);
     } else {
-      setError("Error signing in");
+      setError("Mauvais mdp");
       setLoading(false);
     }
   }

@@ -1,0 +1,73 @@
+/*https://dev.to/dcodeyt/creating-beautiful-html-tables-with-css-428l*/
+
+.styled-table {
+  border-collapse: collapse;
+  margin: 25px 0;
+  font-size: 3em;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  border-radius: 10px; /* Adds rounded corners to the table */
+  overflow: hidden; /* Clips the content within the rounded corners */
+  table-layout: fixed; /* Add this property to fix the table layout */
+  width: 100%; /* Set the overall width of the table */
+}
+
+.styled-table tbody tr {
+  background-color: #f0f0f0;
+}
+
+.styled-table thead tr {
+  background-color: #5028f0;
+  color: #ffffff;
+  text-align: center;
+}
+
+.styled-table thead tr:hover {
+  background-color: #5028f0;
+  color: #ffffff;
+  text-align: center;
+}
+
+.styled-table th,
+.styled-table td {
+  padding: 12px 15px;
+  font-size: 1.8rem;
+  text-align: center;
+  width: 20%;
+}
+
+.styled-table td:last-child {
+  font-weight: bold; /* Apply bold font-weight to cells in the last column */
+  font-size: 1.8rem;
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+  background-color: #cacaca;
+}
+
+.styled-table tbody tr:nth-of-type(even):hover {
+  background-color: red;
+  color: white;
+}
+
+.styled-table tr:hover {
+  background-color: red;
+  color: white;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .styled-table {
+    font-size: 0.8rem;
+    width: 100%;
+  }
+
+  .styled-table th,
+  .styled-table td {
+    font-size: 0.8rem;
+    padding: 10px;
+  }
+
+  .styled-table td:last-child {
+    font-size: 1.3rem;
+  }
+}

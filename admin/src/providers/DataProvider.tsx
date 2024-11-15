@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { db } from "../firebase_config";
-import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import { collection, getDocs, onSnapshot, orderBy, query, where } from "firebase/firestore";
 
 interface DataProviderProps {
   children: React.ReactNode;
@@ -11,14 +11,17 @@ export const DataContext = React.createContext<DataContextValue | null>(null);
 
 interface DataContextValue {
   publicData: Map<string, any> | null;
+  publicDataListener: any | null;
   privateData: Map<string, any> | null;
   quinzaineData: Map<string, any> | null;
   //  fetchTest: Map<string, any> | null;
   refetchPublicData: (id?: number | null) => void;
+  refetchPublicDataListener: (id?: number | null) => void;
   refetchPrivateData: (id?: number | null) => Promise<Map<string, any>>;
   refetchQuinzaineData: (id?: number | null) => Promise<Map<string, any>>;
   loadingPrivate: boolean;
   loadingPublic: boolean;
+  loadingPublicListener: boolean;
   loadingQuinzaine: boolean;
   fetchedTimePublic: number;
   fetchedTimePrivate: number;
@@ -27,18 +30,67 @@ interface DataContextValue {
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [publicData, setPublicData] = useState<Map<string, any> | null>(null);
+  const [publicDataListener, setPublicDataListner] = useState<any>(null);
   const [privateData, setPrivateData] = useState<Map<string, any> | null>(null);
   const [quinzaineData, setQuinzaineData] = useState<Map<string, any> | null>(
     null
   );
   const [loadingPrivate, setLoadingPrivate] = useState<boolean>(false);
   const [loadingPublic, setLoadingPublic] = useState<boolean>(false);
+  const [loadingPublicListener, setLoadingPublicListener] = useState<boolean>(false);
   const [loadingQuinzaine, setLoadingQuinzaine] = useState<boolean>(false);
   const [fetchedTimePublic, setFetchedTimePublic] = useState<number>(0);
   const [fetchedTimePrivate, setFetchedTimePrivate] = useState<number>(0);
   const [fetchedTimeQuinzaine, setFetchedTimeQuinzaine] = useState<number>(0);
 
   // When accessing stock/carte fetch a doc and if the modified date is biger than the local fetch time, refetch. Dont refetch otherwise.
+
+
+  let publicDataUnsubscribe: (() => void) | null = null;
+
+  const fetchPublicDataListener = (id: number | null = null): void => {
+    setLoadingPublicListener(true);
+    const publicRef = collection(db, "Public");
+    let queryDocs;
+    if (id) {
+      queryDocs = query(publicRef, where("edition", "==", Number(id)));
+    } else {
+      queryDocs = query(
+        publicRef,
+        where("active", "==", true),
+        orderBy("edition", "desc")
+      );
+    }
+
+    publicDataUnsubscribe = onSnapshot(
+      queryDocs,
+      (snapshot) => {
+        setLoadingPublicListener(true);
+        let articlesMap;
+        if (!snapshot.empty) {
+          let edition = Number.MIN_VALUE;
+          snapshot.forEach((doc) => {
+            const docData = doc.data();
+            if (docData.edition > edition) {
+              edition = docData.edition;
+              articlesMap = docData;
+            }
+          });
+          console.log("public listener data", articlesMap);
+          setFetchedTimePublic(Date.now());
+          setPublicDataListner(articlesMap);
+          setLoadingPublicListener(false);
+        } else {
+          console.log("No active documents found in public data, listener");
+          setLoadingPublicListener(false);
+        }
+      },
+      (error) => {
+        setLoadingPublicListener(false);
+        console.error("Error fetching listener data in public data:", error);
+      }
+    );
+  };
 
   const fetchPublicData = async (
     id: number | null = null
@@ -269,9 +321,23 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchPublicData(); // Initial data fetch
-    //fetchPrivateData();
+    // Start listening when the component mounts
+    fetchPublicDataListener();
+  
+    // Clean up the listener when the component unmounts
+    return () => {
+      if (publicDataUnsubscribe) {
+        publicDataUnsubscribe();
+      }
+    };
   }, []);
+
+  const refetchPublicDataListener = (id: number | null = null) => {
+    if (publicDataUnsubscribe) {
+      publicDataUnsubscribe(); // Unsubscribe from the previous listener
+    }
+    fetchPublicDataListener(id); // Subscribe to the new listener
+  };
 
   const refetchPublicData = (id: number | null = null) => {
     if (!publicData) {
@@ -310,13 +376,16 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     <DataContext.Provider
       value={{
         publicData,
+        publicDataListener,
         privateData,
         quinzaineData,
         refetchPublicData,
+        refetchPublicDataListener,
         refetchPrivateData,
         refetchQuinzaineData,
         loadingPrivate,
         loadingPublic,
+        loadingPublicListener,
         loadingQuinzaine,
         fetchedTimePublic,
         fetchedTimePrivate,
