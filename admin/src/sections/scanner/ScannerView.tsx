@@ -9,6 +9,18 @@ import {
   getFormattedTimestamp,
   getRoundedTime,
 } from "../../components/stock/salesAndStock";
+import {
+  Alert,
+  Box,
+  Button,
+  Divider,
+  Popover,
+  Snackbar,
+  Typography,
+} from "@mui/material";
+import Iconify from "../../components/iconify/Iconify";
+import Slide, { SlideProps } from "@mui/material/Slide";
+import { LoadingButton } from "@mui/lab";
 
 const centeredTextStyle: React.CSSProperties = {
   display: "flex",
@@ -32,6 +44,10 @@ interface scannerViewProps {
   unSend: number;
 }
 
+function SlideTransition(props: SlideProps) {
+  return <Slide {...props} direction="up" />;
+}
+
 export default function ScannerView({ unSend }: scannerViewProps) {
   //const ScannerView = React.memo(function ScannerView() {
   const { publicDataListener } = useData();
@@ -41,8 +57,6 @@ export default function ScannerView({ unSend }: scannerViewProps) {
   const [unsend, setUnsed] = useState(unSend);
   const [AlertVisibility, setAlertVisibility] = useState(false);
   const [AlertMessage, setAlertMessage] = useState("");
-  const [AlertType, setAlertType] = useState("");
-  const [AlertHigh, setAlertHigh] = useState("");
   let scanner = publicDataListener?.articles;
   let inputs: string[] = [];
 
@@ -79,11 +93,19 @@ export default function ScannerView({ unSend }: scannerViewProps) {
       console.log("Key pressed:", event.key);
       handleKeyboardInput(event.key);
     };
-
+    const handleStorageChange = () => {
+      const updatedValue = localStorage.getItem("unsend");
+      if (updatedValue) {
+        setUnsed(JSON.parse(updatedValue));
+      }
+    };
+    handleStorageChange();
     document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("storage", handleStorageChange);
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
@@ -99,7 +121,14 @@ export default function ScannerView({ unSend }: scannerViewProps) {
 
   const handleEnter = () => {
     //Xconst barcode = inputs.join("");
-    let barcode = "5425031950011";
+    let barcode;
+    if (Math.random() > 0.5) {
+      barcode = "5425031950011";
+    } else {
+      barcode = "5425035760012";
+    }
+
+    //barcode ="errt"
 
     if (barcode == "obqd") {
       console.log("obqd");
@@ -111,11 +140,9 @@ export default function ScannerView({ unSend }: scannerViewProps) {
       //});
     } else if (barcode.length == 0) {
       console.log("vilain canard");
-      setAlertHigh("Erreur");
       setAlertMessage(
-        "Appuyer sur espace pour envoyer le commande, pas sur enter. Petit con"
+        "Vilain Canard: Appuyer sur espace pour envoyer la commande. Petit con"
       );
-      setAlertType("alert-warning");
       setAlertVisibility(true);
     } else {
       setArticles((prevArticles: any) => {
@@ -193,11 +220,9 @@ export default function ScannerView({ unSend }: scannerViewProps) {
             });
             return [...prevArticles, newArticle];
           } else {
-            setAlertHigh("Erreur 404");
             setAlertMessage(
-              `barcode ${barcode} ne correspond pas à un article dans la base de donnée`
+              `Error 404: barcode ${barcode} correspond à aucun article dans la base de donnée`
             );
-            setAlertType("alert-warning");
             setAlertVisibility(true);
             console.log("no match for: ", barcode);
           }
@@ -224,6 +249,10 @@ export default function ScannerView({ unSend }: scannerViewProps) {
   }
 
   async function sendData(prevArticles: any): Promise<any> {
+    if (prevArticles.length == 0) {
+      console.log("Nothing to send");
+      return 1;
+    }
     //increment unsend by one, will be decremented by one once the function return
     const localUnsend = localStorage.getItem("unsend");
     if (localUnsend) {
@@ -249,11 +278,17 @@ export default function ScannerView({ unSend }: scannerViewProps) {
     let totalEuroRef = `transactions.${date}.${roundTime}.totalEuro`;
 
     //if one of the article is a plateau search in the other articles if similar article and increment quantity. if no match add article
-    //const euroPlateau = updatePrevArticles(prevArticles);
+    const euroPlateau = updatePrevArticles(prevArticles);
 
     const batch = writeBatch(db);
     for (const article of prevArticles) {
-      var docRef = doc(db, "Private", String(publicDataListener?.edition), "articles", article.id);
+      var docRef = doc(
+        db,
+        "Private",
+        String(publicDataListener?.edition),
+        "articles",
+        article.id
+      );
 
       if (article.article_type == 1) {
         //console.log("sending beer");
@@ -282,7 +317,7 @@ export default function ScannerView({ unSend }: scannerViewProps) {
         });
       }
     }
-    //totalEuro -= euroPlateau;
+    totalEuro -= euroPlateau;
     batch.update(qnz_docRef, {
       [beerCountRef]: increment(beerCount),
       [beerVolumeRef]: increment(Number(beerVolume.toFixed(2))),
@@ -291,7 +326,6 @@ export default function ScannerView({ unSend }: scannerViewProps) {
     });
 
     //cant update public data (because of listener), update quinzaine doc to tel that there is a new update
-
 
     // add transaction to db
     await batch.commit().then(() => {
@@ -306,7 +340,6 @@ export default function ScannerView({ unSend }: scannerViewProps) {
 
     return 1;
   }
-
 
   //update data to convert plateau into beers
   function updatePrevArticles(prevArticles: any[]): number {
@@ -403,9 +436,79 @@ export default function ScannerView({ unSend }: scannerViewProps) {
     console.log("Updated articles from remove: ", updatedArticles);
   };
 
+  const clearArticles = () => {
+    setPrice(0);
+    setArticles([]);
+    console.log("Removed all articles");
+  };
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+  // Function to handle opening the Popover
+  const handlePopoverOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handlePopoverClose = () => {
+    setAnchorEl(null);
+  };
+
+  const popoverOpen = Boolean(anchorEl);
 
   return (
     <>
+      <Box sx={{ position: "absolute", top: 16, right: 16, zIndex: 1400 }}>
+        <Button color="primary" onClick={handlePopoverOpen}>
+          <span
+            style={{
+              fontSize: "50px", // Increased font size for bigger dots SERVER OR CACHE LOAD
+              marginRight: "5px",
+              color: unsend > 0 ? "red" : "green",
+            }}
+          >
+            •
+          </span>
+        </Button>
+      </Box>
+      <Popover
+        open={popoverOpen}
+        onClose={handlePopoverClose}
+        anchorEl={anchorEl}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        PaperProps={{
+          sx: {
+            p: 0,
+            mt: 1,
+            ml: 0.75,
+            width: 200,
+          },
+        }}
+      >
+        <Box sx={{ my: 1.5, px: 2 }}>
+          <Typography variant="subtitle2" noWrap>
+            Transactions en attente: {unsend}
+          </Typography>
+        </Box>
+
+        <Divider sx={{ borderStyle: "dashed", m: 0 }} />
+
+        <LoadingButton
+          loading={false}
+          onClick={() => {
+            // Define what happens on click
+            handlePopoverClose();
+          }}
+          sx={{
+            typography: "body2",
+            color: "error.main",
+            py: 1.5,
+            width: "100%",
+          }}
+        >
+          Alt mode
+        </LoadingButton>
+      </Popover>
+
       <div style={centeredTextStyle}>
         <h1 style={window.innerWidth >= 768 ? bigTextStyle : smallTextStyle}>
           Total: {Price.toFixed(2).replace(/\.?0+$/, "")}€
@@ -417,6 +520,31 @@ export default function ScannerView({ unSend }: scannerViewProps) {
         handleArticleRemoval={handleArticleRemoval}
       />
       <AffondQuinzaine />
+      {articles.length > 0 && false && (
+        <div style={centeredTextStyle}>
+          <Button variant="contained" color="error" onClick={clearArticles}>
+            Supprimer la commande &nbsp;{" "}
+            <Iconify icon="material-symbols:delete-outline-rounded" />
+          </Button>
+        </div>
+      )}
+      <Snackbar
+        open={AlertVisibility}
+        onClose={() => setAlertVisibility(false)}
+        TransitionComponent={SlideTransition}
+        message="I love snacks"
+        autoHideDuration={6000}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setAlertVisibility(false)}
+          severity="error"
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {AlertMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

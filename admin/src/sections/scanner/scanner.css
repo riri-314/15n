@@ -12,7 +12,7 @@
 }
 
 .styled-table tbody tr {
-  background-color: #f0f0f0;
+  background-color: #d0d0d0;
 }
 
 .styled-table thead tr {
@@ -41,7 +41,7 @@
 }
 
 .styled-table tbody tr:nth-of-type(even) {
-  background-color: #cacaca;
+  background-color: #a9a9a9;
 }
 
 .styled-table tbody tr:nth-of-type(even):hover {

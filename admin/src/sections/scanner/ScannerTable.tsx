@@ -9,6 +9,7 @@ interface scannerTableProps {
 export default function ScannerTable({handleArticleRemoval, TableData, newRowId}:scannerTableProps) {
   console.log("TableData: ", TableData);
     return (
+      
         <table className="styled-table" style={{ width: "100%" }}>
         <thead>
           <tr>
