@@ -25,7 +25,7 @@ export default function Scanner() {
         <Helmet>
           <title>Quinzaine | Scanner</title>
         </Helmet>
-        <ScannerView />
+        <ScannerView unSend={0}/>
 
       </>
     );
